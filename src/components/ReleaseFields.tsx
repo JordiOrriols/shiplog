@@ -59,30 +59,12 @@ export function ReleaseFields({ initial }: { initial?: Release }) {
       <p className="text-xs text-muted-foreground">
         {t("releases.versionHint")}
       </p>
-      <Label htmlFor="release_type">{t("common.type")}</Label>
-      <select
-        name="release_type"
-        id="release_type"
-        className="field"
-        defaultValue={initial?.release_type ?? "major"}
-      >
-        {["major", "minor", "patch", "hotfix"].map((type) => (
-          <option key={type} value={type}>
-            {t(`releaseTypes.${type}`)}
-          </option>
-        ))}
-      </select>
+      <p className="text-xs text-muted-foreground">{t("releases.autoType")}</p>
       <Field
         name="title"
         label={t("common.title")}
         maxLength={160}
         initial={initial?.title ?? ""}
-      />
-      <TextField
-        name="internal_notes"
-        label={t("releases.internal")}
-        maxLength={20000}
-        initial={initial?.internal_notes ?? ""}
       />
       <TextField
         name="public_notes"
@@ -99,9 +81,7 @@ export function releaseFormInput(form: HTMLFormElement, application?: string) {
   return {
     application_id: application ?? field("application_id"),
     version: field("version"),
-    release_type: field("release_type"),
     title: field("title"),
-    internal_notes: field("internal_notes"),
     public_notes: field("public_notes"),
   };
 }

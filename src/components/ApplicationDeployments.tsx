@@ -267,13 +267,19 @@ function DeploymentForm({
       return repository.readiness(effective);
     },
   });
-  const selected = releases.find((release) => release.id === effective);
+  const decisions = useQuery({
+    queryKey: ["shiplog-decisions", user?.id, effective],
+    enabled: production && !!effective,
+    queryFn: () => {
+      if (!repository) throw new Error(t("portal.unavailable"));
+      return repository.decisions(effective);
+    },
+  });
   const warnings = [
-    ...(selected && selected.status !== "approved"
+    ...(decisions.data &&
+    (!decisions.data.some((member) => member.approved === true) ||
+      decisions.data.some((member) => member.approved === false))
       ? ["release_not_approved"]
-      : []),
-    ...(readiness.data && readiness.data.qa_status !== "passed"
-      ? ["manual_qa_not_passed"]
       : []),
     ...(readiness.data?.items.some(
       (item) => item.mandatory && !item.completed_at,
@@ -399,7 +405,9 @@ function DeploymentForm({
             className="rounded-md border border-border p-3 space-y-2 text-sm"
           >
             <p>{t("deployments.warningNotice")}</p>
-            {readiness.isFetching && <p>{t("common.loading")}</p>}
+            {(readiness.isFetching || decisions.isFetching) && (
+              <p>{t("common.loading")}</p>
+            )}
             {readiness.error && (
               <div role="alert">
                 <p>{readiness.error.message}</p>
@@ -407,6 +415,18 @@ function DeploymentForm({
                   type="button"
                   variant="outline"
                   onClick={() => void readiness.refetch()}
+                >
+                  {t("common.retry")}
+                </Button>
+              </div>
+            )}
+            {decisions.error && (
+              <div role="alert">
+                <p>{decisions.error.message}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void decisions.refetch()}
                 >
                   {t("common.retry")}
                 </Button>

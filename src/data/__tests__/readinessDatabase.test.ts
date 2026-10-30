@@ -82,7 +82,9 @@ const complete = (item: string, completed = true) =>
     completed,
   ]);
 beforeAll(async () => {
-  db = await createMigratedDatabase(accounts);
+  db = await createMigratedDatabase(accounts, {
+    until: "20261030230000_shiplog_simplify_management.sql",
+  });
   await login(owner);
   workspace = await value(
     "select id as value from public.create_workspace('Readiness')",
@@ -115,7 +117,7 @@ afterAll(async () => {
   await db?.close();
 });
 
-describe("manual readiness", () => {
+describe("historical manual readiness before the simplification migration", () => {
   it("snapshots templates at creation and preserves old releases through template edits", async () => {
     const snapshot = await readiness();
     expect(snapshot.template_revision).toBe(1);
@@ -391,7 +393,10 @@ it("backfills existing releases with empty snapshots rather than retroactive req
       )
     ).rows[0]!.id;
     await legacy.exec("reset role");
-    await applyMigrations(legacy, { from: migration });
+    await applyMigrations(legacy, {
+      from: migration,
+      until: "20261030230000_shiplog_simplify_management.sql",
+    });
     await legacy.exec("set role authenticated");
     const result = readinessSchema.parse(
       (

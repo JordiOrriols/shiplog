@@ -11,6 +11,7 @@ const state = vi.hoisted(() => ({
   deployments: vi.fn(),
   recordDeployment: vi.fn(),
   readiness: vi.fn(),
+  decisions: vi.fn(),
   refresh: vi.fn(),
 }));
 vi.mock("@/data/DataProvider", () => ({
@@ -68,6 +69,7 @@ beforeEach(() => {
     qa_status: "failed",
     items: [{ mandatory: true, completed_at: null }],
   });
+  state.decisions.mockResolvedValue([]);
 });
 describe("manual deployment controls", () => {
   it("shows warnings without blocking an editor from saving and preserves failed form input", async () => {
@@ -82,7 +84,7 @@ describe("manual deployment controls", () => {
       }),
     );
     expect(
-      await screen.findByText("Manual QA has not passed.", { exact: true }),
+      await screen.findByText("Release is not approved.", { exact: true }),
     ).toBeVisible();
     expect(
       screen.getByText("Release is not approved.", { exact: true }),

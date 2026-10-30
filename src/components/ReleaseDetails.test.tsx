@@ -1,6 +1,6 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/i18n";
@@ -12,6 +12,7 @@ const state = vi.hoisted(() => ({
   previewRelease: vi.fn(),
   updateDraft: vi.fn(),
   saveChange: vi.fn(),
+  updatePublicNotes: vi.fn(),
   refresh: vi.fn(),
 }));
 vi.mock("@/data/DataProvider", () => ({
@@ -53,6 +54,55 @@ beforeEach(() => {
   state.listChanges.mockResolvedValue([]);
 });
 describe("release content controls", () => {
+  it("prevents editing notes during a save so server refresh cannot erase newer input", async () => {
+    let resolve!: () => void;
+    state.updatePublicNotes.mockImplementation(
+      () =>
+        new Promise<void>((done) => {
+          resolve = done;
+        }),
+    );
+    show(true, "2026-10-30T12:00:00Z");
+    const notes = screen.getByLabelText("Public release notes", {
+      exact: true,
+    });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save release notes", exact: true }),
+    );
+    expect(notes).toBeDisabled();
+    await act(async () => resolve());
+    await waitFor(() => expect(notes).toBeEnabled());
+  });
+  it("allows published notes to be edited directly without internal notes or type selectors", async () => {
+    state.updatePublicNotes.mockRejectedValue(new Error("Cannot save notes"));
+    show(true, "2026-10-30T12:00:00Z");
+    expect(
+      screen.queryByLabelText("Internal notes", { exact: true }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Release type", { exact: true }),
+    ).not.toBeInTheDocument();
+    await userEvent.clear(
+      screen.getByLabelText("Public release notes", { exact: true }),
+    );
+    await userEvent.type(
+      screen.getByLabelText("Public release notes", { exact: true }),
+      "Revised public story",
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save release notes", exact: true }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Cannot save notes",
+    );
+    expect(
+      screen.getByLabelText("Public release notes", { exact: true }),
+    ).toHaveValue("Revised public story");
+    expect(state.updatePublicNotes).toHaveBeenCalledWith(
+      release.id,
+      "Revised public story",
+    );
+  });
   it("preserves form values and surfaces failed draft saves", async () => {
     state.updateDraft.mockRejectedValue(new Error("Version already exists"));
     show();

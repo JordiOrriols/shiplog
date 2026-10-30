@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/i18n";
 import WorkspacePage from "./WorkspacePage";
 
@@ -10,12 +11,13 @@ const state = vi.hoisted(() => ({
   access: "owner",
   setPublic: vi.fn(),
   refresh: vi.fn(),
-  createApplication: vi.fn(),
+  saveApplication: vi.fn(),
+  teams: vi.fn(),
   applications: [
     {
       id: "app",
       name: "Website",
-      slug: "website",
+      team_id: null,
       description: "",
       platform: "web",
       public_enabled: false,
@@ -31,7 +33,8 @@ vi.mock("@/data/DataProvider", () => ({
   useData: () => ({
     repository: {
       setPublic: state.setPublic,
-      createApplication: state.createApplication,
+      saveApplication: state.saveApplication,
+      teams: state.teams,
     },
   }),
 }));
@@ -39,7 +42,7 @@ vi.mock("@/data/useWorkspaceData", () => ({
   useWorkspaceData: () => ({
     isPending: false,
     error: null,
-    data: { applications: state.applications, releases: [] },
+    data: { applications: state.applications, releases: [], teams: [] },
     refresh: state.refresh,
   }),
 }));
@@ -47,9 +50,43 @@ beforeEach(() => {
   vi.clearAllMocks();
   state.access = "owner";
   state.applications[0]!.public_enabled = false;
+  state.teams.mockResolvedValue([]);
 });
 
 describe("workspace application controls", () => {
+  it("edits an application without an identifier or platform and allows removing its team", async () => {
+    state.saveApplication.mockResolvedValue({});
+    state.teams.mockResolvedValue([{ id: "team", name: "Engineering" }]);
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <WorkspacePage section="applications" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Edit Website", exact: true }),
+    );
+    const name = await screen.findByLabelText("Name", { exact: true });
+    expect(name).toHaveValue("Website");
+    await userEvent.clear(name);
+    await userEvent.type(name, "Renamed");
+    await userEvent.selectOptions(
+      screen.getByLabelText("Team (optional)"),
+      "team",
+    );
+    await userEvent.selectOptions(screen.getByLabelText("Team (optional)"), "");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save", exact: true }),
+    );
+    await waitFor(() =>
+      expect(state.saveApplication).toHaveBeenCalledWith(
+        "workspace",
+        { name: "Renamed", description: "", team_id: null },
+        "app",
+      ),
+    );
+  });
   it("keeps a catalog checkbox checked while the server saves, and reports rollback failures", async () => {
     let reject!: (error: Error) => void;
     state.setPublic.mockImplementation(
@@ -96,32 +133,38 @@ describe("workspace application controls", () => {
   });
 
   it("surfaces application creation failures without closing or clearing the form", async () => {
-    state.createApplication.mockRejectedValue(
-      new Error("Identifier already exists"),
+    state.saveApplication.mockRejectedValue(
+      new Error("Cannot save application"),
     );
     render(
-      <MemoryRouter>
-        <WorkspacePage section="applications" />
-      </MemoryRouter>,
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <WorkspacePage section="applications" />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     await userEvent.click(
       screen.getByRole("button", { name: "New application" }),
     );
     await userEvent.type(
-      screen.getByLabelText("Name", { exact: true }),
+      await screen.findByLabelText("Name", { exact: true }),
       "Website",
     );
-    await userEvent.type(
-      screen.getByLabelText("Identifier", { exact: true }),
-      "website",
-    );
+    expect(
+      screen.queryByLabelText("Identifier", { exact: true }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Platform", { exact: true }),
+    ).not.toBeInTheDocument();
     await userEvent.click(
       screen.getByRole("button", { name: "Create", exact: true }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Identifier already exists",
+      "Cannot save application",
     );
-    expect(screen.getByLabelText("Identifier")).toHaveValue("website");
+    expect(screen.getByLabelText("Name", { exact: true })).toHaveValue(
+      "Website",
+    );
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: "Create", exact: true }),

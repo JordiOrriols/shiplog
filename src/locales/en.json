@@ -49,6 +49,10 @@
     "type": "Release type"
   },
   "applications": {
+    "edit": "Edit application",
+    "editNamed": "Edit {{name}}",
+    "team": "Team (optional)",
+    "noTeam": "No team",
     "description": "The products and services your workspace ships.",
     "new": "New application",
     "slug": "Identifier",
@@ -66,10 +70,12 @@
     "other": "Other"
   },
   "releases": {
+    "autoType": "Major, minor or patch is detected automatically from the highest existing semantic version. The first release is compared with 0.0.0.",
+    "notesEditable": "Changes to published notes appear immediately on the public page and are audited.",
     "edit": "Edit draft",
     "preview": "Public preview",
     "previewNotice": "Preview only. This shows the public notes and explicitly public changes, without publishing anything.",
-    "historyLocked": "Release history is locked after first publication, a successful deployment or when it leaves draft status. Unpublishing does not unlock editing.",
+    "historyLocked": "Version details and included changes are locked outside an unpublished, undeployed draft. Public release notes remain editable.",
     "description": "Every version, with internal context and a public story.",
     "new": "New release",
     "internal": "Internal notes",
@@ -97,6 +103,7 @@
     "hotfix": "Hotfix"
   },
   "statuses": {
+    "qa": "QA",
     "draft": "Draft",
     "ready_for_qa": "Ready for QA",
     "qa_in_progress": "QA in progress",
@@ -105,6 +112,19 @@
     "released": "Released",
     "deprecated": "Deprecated",
     "rolled_back": "Rolled back"
+  },
+  "simple": {
+    "qa": "QA",
+    "approvals": "Approvals",
+    "status": "Release status",
+    "approved": "Approved",
+    "disapproved": "Disapproved",
+    "pending": "Pending",
+    "approve": "Approve",
+    "disapprove": "Disapprove",
+    "checkProgress": "{{completed}} of {{total}} checks passed",
+    "noChecks": "No QA checks for this release. Configure a checklist template for future releases.",
+    "saveNotes": "Save release notes"
   },
   "deployments": {
     "title": "Deployments",

@@ -97,8 +97,8 @@ beforeEach(async () => {
   await login(owner);
   counter++;
   application = await value(
-    "select (public.shiplog_create_application($1,'Website',$2,'web')).id as value",
-    [workspace, `web-${counter}`],
+    "select (public.shiplog_save_application($1,$2)).id as value",
+    [workspace, `Website ${counter}`],
   );
   staging = await value(
     "select id as value from public.shiplog_environments where application_id=$1 and kind='staging'",
@@ -132,7 +132,6 @@ describe("manual deployment history", () => {
     expect(deployment.recorded_by).toBe(editor);
     expect(deployment.readiness_warnings).toEqual([
       "release_not_approved",
-      "manual_qa_not_passed",
       "mandatory_items_incomplete",
     ]);
     expect(await current()).toBe(first);
@@ -231,7 +230,7 @@ describe("manual deployment history", () => {
   });
   it("validates timestamps, cross-app references, rollback reasons and bounded metadata in SQL", async () => {
     const otherApp = await value<string>(
-      "select (public.shiplog_create_application($1,'Other','other','web')).id as value",
+      "select (public.shiplog_save_application($1,'Other')).id as value",
       [workspace],
     );
     const foreignRelease = await createRelease("1.0.0", otherApp);
@@ -379,18 +378,10 @@ describe("manual deployment history", () => {
         ),
       ),
     ).toBe(Date.parse(time(2)));
-    await db.query(
-      "select public.shiplog_transition_readiness($1,'ready_for_qa','')",
-      [first],
-    );
-    await db.query(
-      "select public.shiplog_record_manual_qa($1,'passed','Verified later')",
-      [first],
-    );
-    await db.query(
-      "select public.shiplog_transition_readiness($1,'approved','')",
-      [first],
-    );
+    await db.query("select public.shiplog_set_release_status($1,'qa')", [
+      first,
+    ]);
+    await db.query("select public.shiplog_decide_release($1,true)", [first]);
     const approved = await record({ completed_at: time(4) });
     expect(approved.readiness_warnings).toEqual([]);
   });
@@ -424,7 +415,10 @@ it("does not invent deployment history for existing releases during migration", 
       }),
     ]);
     await legacy.exec("reset role");
-    await applyMigrations(legacy, { from: migration });
+    await applyMigrations(legacy, {
+      from: migration,
+      until: "20261030230000_shiplog_simplify_management.sql",
+    });
     await legacy.exec("set role authenticated");
     expect(
       (await legacy.query("select * from public.shiplog_deployments")).rows,

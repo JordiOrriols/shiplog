@@ -58,7 +58,7 @@ beforeAll(async () => {
     "select id as value from public.create_workspace('Draft tests')",
   );
   application = await value(
-    "select (public.shiplog_create_application($1,'Website','web','web')).id as value",
+    "select (public.shiplog_save_application($1,'Website')).id as value",
     [workspace],
   );
   await db.query(
@@ -307,7 +307,7 @@ describe("draft release content", () => {
     expect({ ...published, published_at: null }).toEqual(preview);
   });
 
-  it("locks all content edits after publication, even after unpublishing, while retaining notes", async () => {
+  it("locks version and change edits after publication, even after unpublishing, but permits notes updates", async () => {
     const saved = await saveChange();
     for (const published of [true, false]) {
       await db.query("select public.shiplog_publish_release($1,$2)", [
@@ -346,7 +346,7 @@ describe("draft release content", () => {
     // Future lifecycle workflows must not accidentally unlock non-draft content.
     await login(owner, "postgres");
     await db.query(
-      "update public.shiplog_releases set first_published_at=null,status='approved' where id=$1",
+      "update public.shiplog_releases set first_published_at=null,status='qa' where id=$1",
       [release],
     );
     await login(owner);
@@ -386,7 +386,10 @@ it("backfills the first publication date from audit history for an already unpub
       releaseId,
     ]);
     await old.exec("reset role");
-    await applyMigrations(old, { from: migration });
+    await applyMigrations(old, {
+      from: migration,
+      until: "20261030230000_shiplog_simplify_management.sql",
+    });
     await old.exec("set role authenticated");
     await expect(
       old.query("select public.shiplog_update_draft($1,$2::jsonb)", [

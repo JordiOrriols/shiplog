@@ -141,10 +141,7 @@ describe("Shiplog transport", () => {
       }),
     ).rejects.toThrow();
     await expect(
-      repository.recordManualQa("release", { qa_status: "invalid", notes: "" }),
-    ).rejects.toThrow();
-    await expect(
-      repository.transitionReadiness("release", "approved", "x".repeat(4001)),
+      repository.updatePublicNotes("release", "x".repeat(20001)),
     ).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
     fetch.mockResolvedValueOnce(
@@ -172,9 +169,9 @@ describe("Shiplog transport", () => {
     fetch.mockResolvedValueOnce(
       response({ message: "Workspace owner access required" }, 403),
     );
-    await expect(
-      repository.transitionReadiness("release", "approved", "Emergency"),
-    ).rejects.toThrow("Workspace owner access required");
+    await expect(repository.decideRelease("release", true)).rejects.toThrow(
+      "Workspace owner access required",
+    );
   });
   it("distinguishes an unconfigured template from transport failures and validates readiness responses", async () => {
     const { fetch, response, repository } = setup();
@@ -202,7 +199,7 @@ describe("Shiplog transport", () => {
       id: "11111111-1111-4111-8111-111111111111",
       workspace_id: "22222222-2222-4222-8222-222222222222",
       name: "Website",
-      slug: "website",
+      team_id: null,
       description: "",
       platform: "web",
       public_enabled: false,
@@ -211,6 +208,7 @@ describe("Shiplog transport", () => {
     fetch.mockImplementation(async (url) => {
       const path = String(url);
       if (path.includes("shiplog_releases")) return response([]);
+      if (path.includes("/rpc/shiplog_list_teams")) return response([]);
       return response(
         path.includes("offset=500")
           ? [application]
@@ -220,7 +218,9 @@ describe("Shiplog transport", () => {
     expect(
       (await repository.loadWorkspace(application.workspace_id)).applications,
     ).toHaveLength(501);
-    for (const [url] of fetch.mock.calls)
+    for (const [url] of fetch.mock.calls.filter(
+      ([url]) => !String(url).includes("/rpc/"),
+    ))
       expect(String(url)).toContain(
         `workspace_id=eq.${application.workspace_id}`,
       );

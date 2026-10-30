@@ -26,6 +26,7 @@ import {
 import PublicReleaseContent from "./PublicReleaseContent";
 import ReleaseReadiness from "./ReleaseReadiness";
 import ApplicationDeployments from "./ApplicationDeployments";
+import ReleaseApprovals from "./ReleaseApprovals";
 
 export default function ReleaseDetails({
   release,
@@ -42,7 +43,7 @@ export default function ReleaseDetails({
   const client = useQueryClient();
   const action = useAsyncAction();
   const [mode, setMode] = useState<
-    "details" | "edit" | "preview" | "readiness" | "deployments"
+    "details" | "edit" | "preview" | "readiness" | "deployments" | "approvals"
   >("details");
   const [editingChange, setEditingChange] = useState<
     ReleaseChange | "new" | null
@@ -116,7 +117,16 @@ export default function ReleaseDetails({
             disabled={action.busy}
             onClick={() => setMode("readiness")}
           >
-            {t("readiness.title")}
+            {t("simple.qa")}
+          </Button>
+          <Button
+            size="sm"
+            variant={mode === "approvals" ? "secondary" : "ghost"}
+            aria-pressed={mode === "approvals"}
+            disabled={action.busy}
+            onClick={() => setMode("approvals")}
+          >
+            {t("simple.approvals")}
           </Button>
           <Button
             size="sm"
@@ -147,7 +157,41 @@ export default function ReleaseDetails({
             {action.error}
           </p>
         )}
-        {mode === "deployments" ? (
+        {canEdit && (
+          <label className="flex items-center gap-3 text-sm">
+            {t("simple.status")}
+            <select
+              className="field max-w-40"
+              aria-label={t("simple.status")}
+              value={release.status}
+              disabled={action.busy}
+              onChange={(event) => {
+                const status = event.target.value;
+                if (
+                  !repository ||
+                  action.busy ||
+                  (status !== "draft" &&
+                    status !== "qa" &&
+                    status !== "released")
+                )
+                  return;
+                void action.run(async () => {
+                  await repository.setReleaseStatus(release.id, status);
+                  await workspaceData.refresh();
+                });
+              }}
+            >
+              {["draft", "qa", "released"].map((status) => (
+                <option key={status} value={status}>
+                  {t(`statuses.${status}`)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {mode === "approvals" ? (
+          <ReleaseApprovals releaseId={release.id} />
+        ) : mode === "deployments" ? (
           <ApplicationDeployments
             applicationId={release.application_id}
             canEdit={canEdit}
@@ -206,18 +250,45 @@ export default function ReleaseDetails({
                 }).format(new Date(release.created_at)),
               })}
             </p>
-            <section>
-              <h3 className="font-semibold">{t("releases.internal")}</h3>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm">
-                {release.internal_notes || t("common.empty")}
-              </p>
-            </section>
-            <section>
-              <h3 className="font-semibold">{t("releases.public")}</h3>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm">
-                {release.public_notes || t("common.empty")}
-              </p>
-            </section>
+            {canEdit ? (
+              <form
+                key={release.public_notes}
+                className="space-y-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  if (!repository || action.busy) return;
+                  const notes = String(
+                    new FormData(event.currentTarget).get("public_notes") ?? "",
+                  );
+                  void action.run(async () => {
+                    await repository.updatePublicNotes(release.id, notes);
+                    await refresh();
+                  });
+                }}
+              >
+                <fieldset disabled={action.busy}>
+                  <TextField
+                    name="public_notes"
+                    label={t("releases.public")}
+                    maxLength={20000}
+                    initial={release.public_notes}
+                  />
+                </fieldset>
+                <p className="text-xs text-muted-foreground">
+                  {t("releases.notesEditable")}
+                </p>
+                <Button type="submit" disabled={action.busy}>
+                  {t("simple.saveNotes")}
+                </Button>
+              </form>
+            ) : (
+              <section>
+                <h3 className="font-semibold">{t("releases.public")}</h3>
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm">
+                  {release.public_notes || t("common.empty")}
+                </p>
+              </section>
+            )}
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-semibold">{t("changes.title")}</h3>
