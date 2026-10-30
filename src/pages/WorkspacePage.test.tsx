@@ -68,11 +68,14 @@ describe("workspace application controls", () => {
     expect(name).toHaveValue("Website");
     await userEvent.clear(name);
     await userEvent.type(name, "Renamed");
-    await userEvent.selectOptions(
-      screen.getByLabelText("Team (optional)"),
-      "team",
+    await userEvent.click(screen.getByLabelText("Team (optional)"));
+    await userEvent.click(
+      screen.getByRole("option", { name: "Engineering", exact: true }),
     );
-    await userEvent.selectOptions(screen.getByLabelText("Team (optional)"), "");
+    await userEvent.click(screen.getByLabelText("Team (optional)"));
+    await userEvent.click(
+      screen.getByRole("option", { name: "No team", exact: true }),
+    );
     await userEvent.click(
       screen.getByRole("button", { name: "Save", exact: true }),
     );

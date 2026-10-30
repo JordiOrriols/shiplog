@@ -16,19 +16,19 @@ vi.mock("@/data/DataProvider", () => ({
 const decisions = [
   {
     user_id: "owner",
-    name: "owner@example.com",
+    name: "Ada Lovelace",
     approved: true,
     decided_at: "2026-10-30",
   },
   {
     user_id: "editor",
-    name: "editor@example.com",
+    name: "Grace Hopper",
     approved: false,
     decided_at: "2026-10-30",
   },
   {
     user_id: "viewer",
-    name: "viewer@example.com",
+    name: "Viewer",
     approved: null,
     decided_at: null,
   },
@@ -56,39 +56,72 @@ describe("individual approvals", () => {
     expect(
       within(screen.getByRole("list")).getByText("Pending", { exact: true }),
     ).toBeVisible();
-    await userEvent.selectOptions(
-      screen.getByRole("combobox", { name: "Your approval" }),
-      "approved",
-    );
+    const approve = screen.getByRole("button", {
+      name: "Approve",
+      exact: true,
+    });
+    const disapprove = screen.getByRole("button", {
+      name: "Disapprove",
+      exact: true,
+    });
+    expect(approve).toHaveAttribute("aria-pressed", "false");
+    expect(disapprove).toHaveAttribute("aria-pressed", "false");
+    expect(approve).toHaveClass("text-muted-foreground");
+    expect(screen.getByText("Ada Lovelace")).toBeVisible();
+    expect(screen.getByRole("list")).toHaveClass("justify-end");
+    await userEvent.click(approve);
     await waitFor(() =>
       expect(state.decideRelease).toHaveBeenCalledWith("release", true),
     );
     await waitFor(() =>
       expect(
-        screen.getByRole("combobox", { name: "Your approval" }),
+        screen.getByRole("button", { name: "Approve", exact: true }),
       ).toBeEnabled(),
     );
-    await userEvent.selectOptions(
-      screen.getByRole("combobox", { name: "Your approval" }),
-      "disapproved",
-    );
+    await userEvent.click(disapprove);
     expect(state.decideRelease).toHaveBeenLastCalledWith("release", false);
   });
   it("does not show a successful vote on server failure", async () => {
     state.decideRelease.mockRejectedValue(new Error("Cannot save decision"));
     show();
-    await userEvent.selectOptions(
-      await screen.findByRole("combobox", { name: "Your approval" }),
-      "approved",
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Approve", exact: true }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Cannot save decision",
     );
-    expect(screen.getByRole("combobox", { name: "Your approval" })).toHaveValue(
-      "",
-    );
+    expect(
+      screen.getByRole("button", { name: "Approve", exact: true }),
+    ).toHaveAttribute("aria-pressed", "false");
     expect(
       within(screen.getByRole("list")).getByText("Pending", { exact: true }),
     ).toBeVisible();
   });
+  it.each([true, false])(
+    "colors only the selected thumb (%s)",
+    async (approved) => {
+      state.decisions.mockResolvedValue(
+        decisions.map((member) =>
+          member.user_id === "viewer" ? { ...member, approved } : member,
+        ),
+      );
+      show();
+      const approve = await screen.findByRole("button", {
+        name: "Approve",
+        exact: true,
+      });
+      const disapprove = screen.getByRole("button", {
+        name: "Disapprove",
+        exact: true,
+      });
+      expect(approve).toHaveAttribute("aria-pressed", String(approved));
+      expect(disapprove).toHaveAttribute("aria-pressed", String(!approved));
+      expect(approved ? approve : disapprove).toHaveClass(
+        approved ? "text-green-700" : "text-destructive",
+      );
+      expect(approved ? disapprove : approve).toHaveClass(
+        "text-muted-foreground",
+      );
+    },
+  );
 });

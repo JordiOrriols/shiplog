@@ -36,7 +36,7 @@ export async function createMigratedDatabase(
   await db.exec(`
     create role anon; create role authenticated; create role service_role;
     create schema auth;
-    create table auth.users(id uuid primary key, email varchar(255), email_confirmed_at timestamptz);
+    create table auth.users(id uuid primary key, email varchar(255), email_confirmed_at timestamptz, raw_user_meta_data jsonb not null default '{}'::jsonb);
     create function auth.uid() returns uuid language sql stable as $$
       select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
     $$;
@@ -44,10 +44,10 @@ export async function createMigratedDatabase(
     grant execute on function auth.uid() to authenticated, anon;
   `);
   for (const account of accounts)
-    await db.query("insert into auth.users values($1, $2, now())", [
-      account.id,
-      account.email,
-    ]);
+    await db.query(
+      "insert into auth.users(id,email,email_confirmed_at) values($1, $2, now())",
+      [account.id, account.email],
+    );
   await applyMigrations(db, { until });
   return db;
 }

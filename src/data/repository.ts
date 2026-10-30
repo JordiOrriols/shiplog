@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { WorkspaceShare } from "@jordiorriols/ui";
+import { getDisplayName } from "@jordiorriols/ui";
 import { z } from "zod";
 import {
   applicationSchema,
@@ -92,7 +93,15 @@ export function createShiplogRepository(client: SupabaseClient) {
     decisions: async (release: string) =>
       z
         .array(decisionSchema)
-        .parse(await rpc("shiplog_list_release_decisions", { release })),
+        .parse(await rpc("shiplog_list_release_decisions", { release }))
+        .map((member) => ({
+          ...member,
+          name: getDisplayName({
+            memberName: member.member_name,
+            accountName: member.account_name,
+            email: member.email,
+          }),
+        })),
     decideRelease: (release: string, approved: boolean) =>
       rpc("shiplog_decide_release", { release, approved }),
     updatePublicNotes: async (release: string, notes: string) =>
