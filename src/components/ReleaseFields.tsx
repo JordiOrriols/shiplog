@@ -46,26 +46,42 @@ export function TextField({
     </div>
   );
 }
-export function ReleaseFields({ initial }: { initial?: Release }) {
+export function ReleaseFields({
+  initial,
+  draftEditable = true,
+}: {
+  initial?: Release;
+  draftEditable?: boolean;
+}) {
   const { t } = useTranslation();
   return (
     <>
-      <Field
-        name="version"
-        label={t("common.version")}
-        maxLength={100}
-        initial={initial?.version ?? ""}
-      />
-      <p className="text-xs text-muted-foreground">
-        {t("releases.versionHint")}
-      </p>
-      <p className="text-xs text-muted-foreground">{t("releases.autoType")}</p>
-      <Field
-        name="title"
-        label={t("common.title")}
-        maxLength={160}
-        initial={initial?.title ?? ""}
-      />
+      <fieldset disabled={!draftEditable} className="space-y-4">
+        <Field
+          name="version"
+          label={t("common.version")}
+          maxLength={100}
+          initial={initial?.version ?? ""}
+        />
+        <p className="text-xs text-muted-foreground">
+          {t("releases.versionHint")}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {t("releases.autoType")}
+        </p>
+        <Field
+          name="title"
+          label={t("common.title")}
+          maxLength={160}
+          initial={initial?.title ?? ""}
+        />
+      </fieldset>
+      {!draftEditable && initial && (
+        <>
+          <input type="hidden" name="version" value={initial.version} />
+          <input type="hidden" name="title" value={initial.title} />
+        </>
+      )}
       <TextField
         name="public_notes"
         label={t("releases.public")}

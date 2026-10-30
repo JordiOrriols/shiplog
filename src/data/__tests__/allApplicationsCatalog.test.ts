@@ -4,7 +4,7 @@ import {
   createMigratedDatabase,
   applyMigrations,
 } from "./support/migratedDatabase";
-import { publicCatalogSchema } from "@/lib/contracts";
+import { releaseOnlyCatalogSchema as publicCatalogSchema } from "./support/legacyContracts";
 
 it("automatically includes existing and future applications without leaking internal changes or another workspace, and still revokes the catalog", async () => {
   const migration = "20261030233000_shiplog_all_applications_catalog.sql";
@@ -56,7 +56,10 @@ it("automatically includes existing and future applications without leaking inte
       [workspace],
     );
     await db.exec("reset role");
-    await applyMigrations(db, { from: migration });
+    await applyMigrations(db, {
+      from: migration,
+      until: "20261031000000_shiplog_planner_features.sql",
+    });
     await db.exec("set role authenticated");
     const applications = (
       await db.query<Record<string, unknown>>(

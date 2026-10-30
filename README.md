@@ -16,8 +16,16 @@ Release history and communication on the same Supabase project and shared
   inferred against the highest existing SemVer in the application, not insertion
   order (initial baseline `0.0.0`). Prerelease precedence and build metadata follow
   SemVer. Version edits exclude the edited release from the comparison.
-- Version/title and categorized changes are editable in Draft status. Changes
-  remain private by default unless explicitly marked public.
+- Release modals have **Details**, **Changes** and **QA** tabs. Details contains
+  version/title, release notes and status, saved together from the modal footer.
+- Version/title and feature links are editable in Draft status. Changes links
+  multiple existing Planner features from the same workspace; both Shiplog edit
+  access and Planner access are required. Detailed change descriptions belong in
+  release notes, not separate categorized change records.
+- Linked feature names are snapshotted when linked and shown publicly without
+  Planner IDs, descriptions or private links. Renames do not silently change a
+  release's public text; unlink/relink to refresh a name. Deleting a Planner
+  feature removes its release links.
 - Owners/editors can edit public notes in every status. All releases, including
   Draft and QA, appear automatically when the workspace catalog is enabled.
   Edits appear immediately and are audited.
@@ -90,7 +98,7 @@ manually against an existing project.
 The Shiplog migration extends workspace app validation and adds:
 
 - `shiplog_applications`
-- `shiplog_releases`, `shiplog_release_changes`
+- `shiplog_releases`, `shiplog_release_features`
 - `shiplog_audit_events`, `shiplog_portals`
 
 Internal tables have RLS and authenticated read grants. Mutations go through
@@ -99,7 +107,16 @@ tables. `shiplog_public_catalog(token)` returns all workspace application names
 and allow-listed release fields for every status. Catalog tokens are opaque and revocable; they are
 shareable links, not an account permission.
 
-`20261030200000_shiplog_draft_content.sql` adds the draft/change RPCs and the
+`20261031000000_shiplog_planner_features.sql` consolidates release detail saves,
+adds authorized same-workspace Planner feature linking and changes the public
+projection to name-only features. It copies legacy public changes into release
+notes in creation order, removes internal changes and retired change audit events,
+then drops the old change table/RPCs. If conversion would exceed the 20,000-character
+notes limit, the migration stops rather than truncating data. QA and approvals are
+preserved. This destructive migration has been tested and applied to the shared
+database with explicit approval.
+
+`20261030200000_shiplog_draft_content.sql` originally added the draft/change RPCs and the
 shared preview projection. It also backfills first-publication timestamps from
 existing audit history, including previously unpublished releases. The migration
 has been applied to the shared Supabase project with approval.

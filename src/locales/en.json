@@ -57,7 +57,7 @@
     "new": "New application",
     "slug": "Identifier",
     "platform": "Platform",
-    "hint": "When the workspace public catalog is enabled, it includes every application and release, including Draft and QA. Internal changes remain private."
+    "hint": "When the workspace public catalog is enabled, it includes every application and release, including Draft and QA. Only linked feature names are shown, never private Planner details."
   },
   "platforms": {
     "web": "Web",
@@ -70,9 +70,8 @@
   "releases": {
     "autoType": "Major, minor or patch is detected automatically from the highest existing semantic version. The first release is compared with 0.0.0.",
     "notesEditable": "When the workspace public catalog is enabled, note updates appear immediately on the public page and are audited.",
-    "edit": "Edit draft",
-    "historyLocked": "Version details and included changes can be edited in Draft status. Public release notes remain editable in every status.",
-    "description": "Every version, with internal context and a public story.",
+    "historyLocked": "Version details and linked features can be edited in Draft status. Release notes and status remain editable.",
+    "description": "Every version, with release notes and linked Planner features.",
     "new": "New release",
     "internal": "Internal notes",
     "public": "Public release notes",
@@ -164,24 +163,19 @@
     }
   },
   "changes": {
-    "title": "Included changes",
-    "add": "Add change",
-    "edit": "Edit",
-    "editNamed": "Edit change {{title}}",
-    "deleteNamed": "Delete change {{title}}",
-    "deleteDescription": "Remove this change from the draft? The deletion remains in the internal audit history.",
-    "empty": "No changes yet.",
-    "category": "Category",
-    "public": "Public change",
-    "private": "Internal only",
-    "categories": {
-      "feature": "New features",
-      "improvement": "Improvements",
-      "bug_fix": "Bug fixes",
-      "technical": "Technical changes",
-      "breaking": "Breaking changes",
-      "security": "Security fixes"
-    }
+    "category": "Category"
+  },
+  "featureLinks": {
+    "details": "Details",
+    "changes": "Changes",
+    "title": "Included features",
+    "description": "Link major Planner features from this workspace. Write the full change descriptions in release notes. Linked feature names are public when the catalog is enabled.",
+    "feature": "Planner feature",
+    "select": "Select a feature",
+    "link": "Link feature",
+    "unlink": "Unlink",
+    "unlinkNamed": "Unlink {{name}}",
+    "empty": "No linked features yet."
   },
   "portal": {
     "description": "One public link for all included applications in this workspace. Visitors can filter by application.",

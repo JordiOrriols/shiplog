@@ -4,25 +4,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AppSkeleton,
   Button,
-  ConfirmDialog,
   Label,
   Modal,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
 } from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
-import {
-  CHANGE_CATEGORIES,
-  isEditableDraft,
-  type Release,
-  type ReleaseChange,
-} from "@/lib/contracts";
-import {
-  Field,
-  ReleaseFields,
-  TextField,
-  releaseFormInput,
-} from "./ReleaseFields";
+import { isEditableDraft, type Release } from "@/lib/contracts";
+import { ReleaseFields, releaseFormInput } from "./ReleaseFields";
 import ReleaseReadiness from "./ReleaseReadiness";
 
 export default function ReleaseDetails({
@@ -34,386 +27,217 @@ export default function ReleaseDetails({
   canEdit: boolean;
   onClose: () => void;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { repository, user } = useData();
   const workspaceData = useWorkspaceData();
   const client = useQueryClient();
   const action = useAsyncAction();
-  const [mode, setMode] = useState<"details" | "edit" | "readiness">("details");
-  const [editingChange, setEditingChange] = useState<
-    ReleaseChange | "new" | null
-  >(null);
-  const [deleting, setDeleting] = useState<ReleaseChange | null>(null);
+  const [tab, setTab] = useState("details");
+  const [selected, setSelected] = useState("");
   const editable = canEdit && isEditableDraft(release);
-  const changesKey = ["shiplog-changes", user?.id, release.id];
-  const changes = useQuery({
-    queryKey: changesKey,
+  const featuresKey = ["shiplog-features", user?.id, release.id];
+  const features = useQuery({
+    queryKey: featuresKey,
+    enabled: tab === "changes",
     queryFn: () => {
       if (!repository) throw new Error(t("portal.unavailable"));
-      return repository.listChanges(release.id);
+      return repository.releaseFeatures(release.id);
     },
   });
-  async function refresh() {
-    await Promise.all([
-      workspaceData.refresh(),
-      client.invalidateQueries({ queryKey: changesKey }),
-    ]);
-  }
+  const candidates = useQuery({
+    queryKey: [...featuresKey, "candidates"],
+    enabled: tab === "changes" && editable,
+    queryFn: () => {
+      if (!repository) throw new Error(t("portal.unavailable"));
+      return repository.releaseFeatures(release.id, true);
+    },
+  });
+  const linked = features.data ?? [];
+  const available = candidates.data?.filter((feature) => !feature.linked) ?? [];
+  const link = (id: string, enabled: boolean) => {
+    if (!repository || action.busy) return;
+    void action.run(async () => {
+      await repository.linkFeature(release.id, id, enabled);
+      setSelected("");
+      await client.invalidateQueries({ queryKey: featuresKey });
+    });
+  };
   return (
     <Modal
       isOpen
       title={`${release.version} — ${release.title}`}
       description={t("releases.detail")}
       closeLabel={t("common.close")}
-      footer={
-        canEdit &&
-        mode !== "readiness" && (
-          <Button
-            type="submit"
-            form={
-              editingChange && editable
-                ? "release-change-form"
-                : mode === "edit" && editable
-                  ? "release-edit-form"
-                  : "release-notes-form"
-            }
-            disabled={action.busy}
-          >
-            {t("common.save")}
-          </Button>
-        )
-      }
       onOpenChange={(open) => {
         if (!open && !action.busy) onClose();
       }}
+      footer={
+        canEdit &&
+        (tab === "details" || (tab === "changes" && editable)) && (
+          <Button
+            type={tab === "details" ? "submit" : "button"}
+            form={tab === "details" ? "release-details-form" : undefined}
+            disabled={
+              action.busy || (tab === "changes" && (!editable || !selected))
+            }
+            onClick={tab === "changes" ? () => link(selected, true) : undefined}
+          >
+            {t(tab === "details" ? "common.save" : "featureLinks.link")}
+          </Button>
+        )
+      }
     >
-      <div className="max-h-[calc(100dvh-16rem)] space-y-5 overflow-y-auto">
-        <div
-          role="group"
-          aria-label={t("releases.detail")}
-          className="flex flex-wrap gap-2"
-        >
-          <Button
-            size="sm"
-            variant={mode === "details" ? "secondary" : "ghost"}
-            aria-pressed={mode === "details"}
-            disabled={action.busy}
-            onClick={() => {
-              setEditingChange(null);
-              setMode("details");
-            }}
-          >
-            {t("releases.detail")}
-          </Button>
-          {editable && (
-            <Button
-              size="sm"
-              variant={mode === "edit" ? "secondary" : "ghost"}
-              aria-pressed={mode === "edit"}
-              disabled={action.busy}
-              onClick={() => {
-                setEditingChange(null);
-                setMode("edit");
-              }}
-            >
-              {t("releases.edit")}
-            </Button>
-          )}
-          <Button
-            size="sm"
-            variant={mode === "readiness" ? "secondary" : "ghost"}
-            aria-pressed={mode === "readiness"}
-            disabled={action.busy}
-            onClick={() => {
-              setEditingChange(null);
-              setMode("readiness");
-            }}
-          >
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <TabsList aria-label={t("releases.detail")}>
+          <TabsTrigger value="details" disabled={action.busy}>
+            {t("featureLinks.details")}
+          </TabsTrigger>
+          <TabsTrigger value="changes" disabled={action.busy}>
+            {t("featureLinks.changes")}
+          </TabsTrigger>
+          <TabsTrigger value="qa" disabled={action.busy}>
             {t("simple.qa")}
-          </Button>
-        </div>
-        {!isEditableDraft(release) && (
-          <p className="text-xs text-muted-foreground">
-            {t("releases.historyLocked")}
-          </p>
-        )}
+          </TabsTrigger>
+        </TabsList>
         {action.error && (
           <p role="alert" className="text-sm text-destructive">
             {action.error}
           </p>
         )}
-        {canEdit && mode === "details" && (
-          <label className="flex items-center gap-3 text-sm">
-            {t("simple.status")}
-            <select
-              className="field max-w-40"
-              aria-label={t("simple.status")}
-              value={release.status}
-              disabled={action.busy || !!editingChange}
-              onChange={(event) => {
-                const status = event.target.value;
-                if (
-                  !repository ||
-                  action.busy ||
-                  (status !== "draft" &&
-                    status !== "qa" &&
-                    status !== "released")
-                )
-                  return;
-                void action.run(async () => {
-                  await repository.setReleaseStatus(release.id, status);
-                  await workspaceData.refresh();
-                });
-              }}
-            >
-              {["draft", "qa", "released"].map((status) => (
-                <option key={status} value={status}>
-                  {t(`statuses.${status}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {mode === "readiness" ? (
-          <ReleaseReadiness release={release} canEdit={canEdit} />
-        ) : mode === "edit" && editable ? (
+        <TabsContent value="details" forceMount hidden={tab !== "details"}>
           <form
-            id="release-edit-form"
+            id="release-details-form"
+            key={`${release.id}-${release.status}-${release.public_notes}`}
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
-              if (action.busy || !repository) return;
+              if (!repository || action.busy || !canEdit) return;
               const input = releaseFormInput(
                 event.currentTarget,
                 release.application_id,
               );
+              const status = String(
+                new FormData(event.currentTarget).get("status"),
+              );
               void action.run(async () => {
-                await repository.updateDraft(release.id, input);
-                await refresh();
-                setMode("details");
+                await repository.updateDetails(release.id, input, status);
+                await workspaceData.refresh();
               });
             }}
           >
-            <fieldset disabled={action.busy} className="space-y-4">
-              <ReleaseFields initial={release} />
-            </fieldset>
-          </form>
-        ) : (
-          <>
-            <p className="text-sm text-muted-foreground">
-              {t("releases.created", {
-                date: new Intl.DateTimeFormat(i18n.language, {
-                  dateStyle: "medium",
-                }).format(new Date(release.created_at)),
-              })}
-            </p>
-            {canEdit ? (
-              <form
-                id="release-notes-form"
-                key={release.public_notes}
-                className="space-y-3"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  if (!repository || action.busy) return;
-                  const notes = String(
-                    new FormData(event.currentTarget).get("public_notes") ?? "",
-                  );
-                  void action.run(async () => {
-                    await repository.updatePublicNotes(release.id, notes);
-                    await refresh();
-                  });
-                }}
-              >
-                <fieldset
-                  disabled={action.busy || (editable && !!editingChange)}
+            <fieldset disabled={action.busy || !canEdit} className="space-y-4">
+              <ReleaseFields initial={release} draftEditable={editable} />
+              <div className="space-y-1">
+                <Label htmlFor="release-status">{t("simple.status")}</Label>
+                <select
+                  id="release-status"
+                  name="status"
+                  className="field"
+                  defaultValue={release.status}
                 >
-                  <TextField
-                    name="public_notes"
-                    label={t("releases.public")}
-                    maxLength={20000}
-                    initial={release.public_notes}
-                  />
-                </fieldset>
-                <p className="text-xs text-muted-foreground">
-                  {t("releases.notesEditable")}
-                </p>
-              </form>
-            ) : (
-              <section>
-                <h3 className="font-semibold">{t("releases.public")}</h3>
-                <p className="mt-2 whitespace-pre-wrap break-words text-sm">
-                  {release.public_notes || t("common.empty")}
-                </p>
-              </section>
-            )}
-            <section className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="font-semibold">{t("changes.title")}</h3>
-                {editable && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={action.busy}
-                    onClick={() => setEditingChange("new")}
-                  >
-                    {t("changes.add")}
-                  </Button>
-                )}
+                  {["draft", "qa", "released"].map((status) => (
+                    <option key={status} value={status}>
+                      {t(`statuses.${status}`)}
+                    </option>
+                  ))}
+                </select>
               </div>
-              {changes.isPending ? (
-                <AppSkeleton fullPage={false} label={t("common.loading")} />
-              ) : changes.error ? (
+            </fieldset>
+            {!isEditableDraft(release) && (
+              <p className="text-xs text-muted-foreground">
+                {t("releases.historyLocked")}
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {t("releases.notesEditable")}
+            </p>
+          </form>
+        </TabsContent>
+        <TabsContent value="changes" className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {t("featureLinks.description")}
+          </p>
+          {features.isPending ? (
+            <AppSkeleton fullPage={false} label={t("common.loading")} />
+          ) : features.error ? (
+            <div role="alert">
+              <p>{features.error.message}</p>
+              <Button variant="outline" onClick={() => void features.refetch()}>
+                {t("common.retry")}
+              </Button>
+            </div>
+          ) : (
+            <>
+              {editable && candidates.error && (
                 <div role="alert">
-                  <p>{changes.error.message}</p>
-                  <Button onClick={() => void changes.refetch()}>
+                  <p>{candidates.error.message}</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => void candidates.refetch()}
+                  >
                     {t("common.retry")}
                   </Button>
                 </div>
-              ) : changes.data.length ? (
+              )}
+              {editable && !candidates.error && (
+                <div className="space-y-1">
+                  <Label htmlFor="planner-feature">
+                    {t("featureLinks.feature")}
+                  </Label>
+                  <select
+                    id="planner-feature"
+                    className="field"
+                    value={selected}
+                    disabled={action.busy || candidates.isPending}
+                    onChange={(event) => setSelected(event.target.value)}
+                  >
+                    <option value="">{t("featureLinks.select")}</option>
+                    {available.map((feature) => (
+                      <option key={feature.id} value={feature.id}>
+                        {feature.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {linked.length ? (
                 <ul className="divide-y divide-border">
-                  {changes.data.map((change) => (
-                    <li key={change.id} className="space-y-2 py-3">
-                      <p className="text-xs text-muted-foreground">
-                        {t(`changes.categories.${change.category}`)} ·{" "}
-                        {t(
-                          change.is_public
-                            ? "changes.public"
-                            : "changes.private",
-                        )}
-                      </p>
-                      <p className="break-words text-sm font-medium">
-                        {change.title}
-                      </p>
-                      <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                        {change.description}
-                      </p>
-                      {editable && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={action.busy}
-                            aria-label={t("changes.editNamed", {
-                              title: change.title,
-                            })}
-                            onClick={() => setEditingChange(change)}
-                          >
-                            {t("changes.edit")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            disabled={action.busy}
-                            aria-label={t("changes.deleteNamed", {
-                              title: change.title,
-                            })}
-                            onClick={() => setDeleting(change)}
-                          >
-                            {t("common.delete")}
-                          </Button>
-                        </div>
+                  {linked.map((feature) => (
+                    <li
+                      key={feature.id}
+                      className="flex items-center justify-between gap-3 py-3"
+                    >
+                      <span className="break-words text-sm font-medium">
+                        {feature.name}
+                      </span>
+                      {editable && candidates.isSuccess && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={action.busy}
+                          aria-label={t("featureLinks.unlinkNamed", {
+                            name: feature.name,
+                          })}
+                          onClick={() => link(feature.id, false)}
+                        >
+                          {t("featureLinks.unlink")}
+                        </Button>
                       )}
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  {t("changes.empty")}
+                  {t("featureLinks.empty")}
                 </p>
               )}
-              {editable && editingChange && (
-                <form
-                  id="release-change-form"
-                  key={editingChange === "new" ? "new" : editingChange.id}
-                  className="space-y-3 rounded-lg border border-border p-3"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    if (action.busy || !repository) return;
-                    const form = new FormData(event.currentTarget);
-                    const input = {
-                      category: form.get("category"),
-                      title: form.get("change_title"),
-                      description: form.get("change_description"),
-                      is_public: form.get("is_public") === "on",
-                    };
-                    const id =
-                      editingChange === "new" ? undefined : editingChange.id;
-                    void action.run(async () => {
-                      await repository.saveChange(release.id, input, id);
-                      await refresh();
-                      setEditingChange(null);
-                    });
-                  }}
-                >
-                  <fieldset disabled={action.busy} className="space-y-3">
-                    <Label htmlFor="category">{t("changes.category")}</Label>
-                    <select
-                      id="category"
-                      name="category"
-                      className="field"
-                      defaultValue={
-                        editingChange === "new"
-                          ? "feature"
-                          : editingChange.category
-                      }
-                    >
-                      {CHANGE_CATEGORIES.map((category) => (
-                        <option key={category} value={category}>
-                          {t(`changes.categories.${category}`)}
-                        </option>
-                      ))}
-                    </select>
-                    <Field
-                      name="change_title"
-                      label={t("common.title")}
-                      maxLength={160}
-                      initial={
-                        editingChange === "new" ? "" : editingChange.title
-                      }
-                    />
-                    <TextField
-                      name="change_description"
-                      label={t("common.description")}
-                      maxLength={10000}
-                      initial={
-                        editingChange === "new" ? "" : editingChange.description
-                      }
-                    />
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        name="is_public"
-                        type="checkbox"
-                        defaultChecked={
-                          editingChange !== "new" && editingChange.is_public
-                        }
-                      />
-                      {t("changes.public")}
-                    </label>
-                  </fieldset>
-                </form>
-              )}
-            </section>
-          </>
-        )}
-      </div>
-      <ConfirmDialog
-        isOpen={!!deleting}
-        title={t("changes.deleteNamed", { title: deleting?.title ?? "" })}
-        description={t("changes.deleteDescription")}
-        confirmLabel={t("common.delete")}
-        cancelLabel={t("common.close")}
-        onCancel={() => {
-          if (!action.busy) setDeleting(null);
-        }}
-        onConfirm={() => {
-          if (!deleting || action.busy || !repository) return;
-          void action.run(async () => {
-            await repository.deleteChange(release.id, deleting.id);
-            await refresh();
-            setDeleting(null);
-          });
-        }}
-      />
+            </>
+          )}
+        </TabsContent>
+        <TabsContent value="qa">
+          <ReleaseReadiness release={release} canEdit={canEdit} />
+        </TabsContent>
+      </Tabs>
     </Modal>
   );
 }

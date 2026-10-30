@@ -57,45 +57,56 @@ describe("Shiplog transport", () => {
     ).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
   });
-  it("validates draft edits and changes before transport and surfaces mutation failures", async () => {
+  it("validates details before transport and surfaces feature mutation failures", async () => {
     const { fetch, response, repository } = setup();
     await expect(
       repository.updateDraft("release", { version: "1.0" }),
     ).rejects.toThrow();
     await expect(
-      repository.saveChange("release", { category: "invalid" }),
+      repository.updateDetails("release", { version: "1.0" }, "qa"),
     ).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
     fetch.mockResolvedValueOnce(
       response({ message: "Only drafts can be edited" }, 400),
     );
     await expect(
-      repository.saveChange(
-        "release",
-        {
-          category: "bug_fix",
-          title: "Dates align",
-          description: "",
-          is_public: false,
-        },
-        "change",
-      ),
+      repository.linkFeature("release", "feature", true),
     ).rejects.toThrow("Only drafts can be edited");
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/rpc/shiplog_save_change"),
+      expect.stringContaining("/rpc/shiplog_link_feature"),
       expect.objectContaining({
         body: JSON.stringify({
           release: "release",
-          input: {
-            category: "bug_fix",
-            title: "Dates align",
-            description: "",
-            is_public: false,
-          },
-          change_id: "change",
+          feature: "feature",
+          linked: true,
         }),
       }),
     );
+  });
+  it("paginates Planner names and validates responses without swallowing access failures", async () => {
+    const { fetch, response, repository } = setup();
+    const feature = {
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "Roadmap",
+      linked: false,
+    };
+    fetch
+      .mockResolvedValueOnce(response(Array(500).fill(feature)))
+      .mockResolvedValueOnce(response([feature]));
+    expect(await repository.releaseFeatures("release", true)).toHaveLength(501);
+    expect(String(fetch.mock.calls[1]?.[0])).toContain("offset=500");
+    expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({
+      release: "release",
+      candidates: true,
+    });
+    fetch.mockResolvedValueOnce(
+      response({ message: "Planner access required" }, 403),
+    );
+    await expect(repository.releaseFeatures("release", true)).rejects.toThrow(
+      "Planner access required",
+    );
+    fetch.mockResolvedValueOnce(response([{ name: "Missing ID" }]));
+    await expect(repository.releaseFeatures("release")).rejects.toThrow();
   });
   it("validates response shapes and surfaces server errors", async () => {
     const { fetch, response, repository } = setup();
