@@ -1,11 +1,10 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { WelcomeScreen, PROJECTS } from "@jordiorriols/ui";
+import { WelcomeScreen, ProjectIcon } from "@jordiorriols/ui";
 import { History, Lock, Megaphone } from "@jordiorriols/ui/icons";
 import { LoginDialog } from "@/components/LoginDialog";
 import { useData } from "@/data/DataProvider";
 
-const AppIcon = PROJECTS.find((project) => project.id === "shiplog")!.icon;
 export function WelcomePage() {
   const { t } = useTranslation();
   const { authEnabled, authError, linkError } = useData();
@@ -13,8 +12,9 @@ export function WelcomePage() {
   const [open, setOpen] = useState(false);
   return (
     <WelcomeScreen
+      projectId="shiplog"
       brand={t("app.name")}
-      icon={<AppIcon />}
+      icon={<ProjectIcon projectId="shiplog" />}
       title={t("welcome.title")}
       description={t("welcome.description")}
       features={[
