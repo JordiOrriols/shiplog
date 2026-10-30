@@ -31,6 +31,8 @@
     "portal": "Public portal"
   },
   "common": {
+    "save": "Save",
+    "delete": "Delete",
     "create": "Create",
     "cancel": "Cancel",
     "close": "Close",
@@ -64,6 +66,10 @@
     "other": "Other"
   },
   "releases": {
+    "edit": "Edit draft",
+    "preview": "Public preview",
+    "previewNotice": "Preview only. This shows the public notes and explicitly public changes, without publishing anything.",
+    "historyLocked": "Release history is locked after first publication or when it leaves draft status. Unpublishing does not unlock editing.",
     "description": "Every version, with internal context and a public story.",
     "new": "New release",
     "internal": "Internal notes",
@@ -99,6 +105,26 @@
     "released": "Released",
     "deprecated": "Deprecated",
     "rolled_back": "Rolled back"
+  },
+  "changes": {
+    "title": "Included changes",
+    "add": "Add change",
+    "edit": "Edit",
+    "editNamed": "Edit change {{title}}",
+    "deleteNamed": "Delete change {{title}}",
+    "deleteDescription": "Remove this change from the draft? The deletion remains in the internal audit history.",
+    "empty": "No changes yet.",
+    "category": "Category",
+    "public": "Public change",
+    "private": "Internal only",
+    "categories": {
+      "feature": "New features",
+      "improvement": "Improvements",
+      "bug_fix": "Bug fixes",
+      "technical": "Technical changes",
+      "breaking": "Breaking changes",
+      "security": "Security fixes"
+    }
   },
   "portal": {
     "description": "One public link for all included applications in this workspace. Visitors can filter by application.",

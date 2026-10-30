@@ -5,6 +5,9 @@ import {
   releaseSchema,
   publicCatalogSchema,
   releaseInputSchema,
+  changeSchema,
+  changeInputSchema,
+  publicReleaseSchema,
 } from "@/lib/contracts";
 
 export function createShiplogRepository(client: SupabaseClient) {
@@ -73,6 +76,29 @@ export function createShiplogRepository(client: SupabaseClient) {
     },
     publishRelease: (release: string, published: boolean) =>
       rpc("shiplog_publish_release", { release, published }),
+    updateDraft: async (release: string, input: unknown) =>
+      releaseSchema.parse(
+        await rpc("shiplog_update_draft", {
+          release,
+          input: releaseInputSchema.parse(input),
+        }),
+      ),
+    listChanges: (release: string) =>
+      list("shiplog_release_changes", changeSchema, "release_id", release),
+    saveChange: async (release: string, input: unknown, changeId?: string) =>
+      changeSchema.parse(
+        await rpc("shiplog_save_change", {
+          release,
+          input: changeInputSchema.parse(input),
+          ...(changeId ? { change_id: changeId } : {}),
+        }),
+      ),
+    deleteChange: (release: string, changeId: string) =>
+      rpc("shiplog_delete_change", { release, change_id: changeId }),
+    previewRelease: async (release: string) =>
+      publicReleaseSchema.parse(
+        await rpc("shiplog_preview_release", { release }),
+      ),
     portal: async (workspace: string, enabled?: boolean) =>
       z
         .string()

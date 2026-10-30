@@ -6,7 +6,6 @@ import {
   Button,
   ConfirmDialog,
   EmptyState,
-  Input,
   Label,
   Modal,
 } from "@jordiorriols/ui";
@@ -16,6 +15,13 @@ import { useWorkspaceData } from "@/data/useWorkspaceData";
 import { useWorkspace } from "@/data/WorkspaceProvider";
 import { useData } from "@/data/DataProvider";
 import { type Release } from "@/lib/contracts";
+import ReleaseDetails from "@/components/ReleaseDetails";
+import {
+  Field,
+  TextField,
+  ReleaseFields,
+  releaseFormInput,
+} from "@/components/ReleaseFields";
 
 export default function WorkspacePage({
   section,
@@ -30,7 +36,7 @@ export default function WorkspacePage({
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [publication, setPublication] = useState<Release | null>(null);
-  const [detail, setDetail] = useState<Release | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [publicDraft, setPublicDraft] = useState<{
     id: string;
     enabled: boolean;
@@ -50,6 +56,7 @@ export default function WorkspacePage({
     );
   if (!workspace || !repository || !query.data) return null;
   const { applications, releases } = query.data;
+  const detail = releases.find((release) => release.id === detailId);
   const names = new Map(applications.map((app) => [app.id, app.name]));
   const visible = releases.filter(
     (release) => !filter || release.application_id === filter,
@@ -211,7 +218,7 @@ export default function WorkspacePage({
                     <button
                       type="button"
                       className="text-left text-lg font-semibold hover:underline"
-                      onClick={() => setDetail(release)}
+                      onClick={() => setDetailId(release.id)}
                     >
                       <span className="mr-3 font-mono text-brand">
                         {release.version}
@@ -269,36 +276,12 @@ export default function WorkspacePage({
         />
       )}
       {detail && (
-        <Modal
-          isOpen
-          title={`${detail.version} — ${detail.title}`}
-          description={t("releases.detail")}
-          onOpenChange={(value) => {
-            if (!value) setDetail(null);
-          }}
-          closeLabel={t("common.close")}
-        >
-          <div className="space-y-5">
-            <p className="text-sm text-muted-foreground">
-              {t("releases.created", { date: date(detail.created_at) })}
-            </p>
-            <section>
-              <h3 className="font-semibold">{t("releases.internal")}</h3>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm">
-                {detail.internal_notes || t("common.empty")}
-              </p>
-            </section>
-            <section>
-              <h3 className="font-semibold">{t("releases.public")}</h3>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm">
-                {detail.public_notes || t("common.empty")}
-              </p>
-            </section>
-            <p className="text-xs text-muted-foreground">
-              {t("releases.publicationNotice")}
-            </p>
-          </div>
-        </Modal>
+        <ReleaseDetails
+          key={detail.id}
+          release={detail}
+          canEdit={canEdit}
+          onClose={() => setDetailId(null)}
+        />
       )}
       <ConfirmDialog
         isOpen={!!publication}
@@ -369,6 +352,7 @@ function CreateForm({
           if (action.busy || !repository || !workspace) return;
           const form = new FormData(event.currentTarget);
           const field = (name: string) => String(form.get(name) ?? "");
+          const releaseInput = releaseFormInput(event.currentTarget);
           void action.run(async () => {
             if (section === "applications")
               await repository.createApplication(
@@ -378,15 +362,7 @@ function CreateForm({
                 field("platform"),
                 field("description"),
               );
-            else
-              await repository.createRelease({
-                application_id: field("application_id"),
-                version: field("version"),
-                release_type: field("release_type"),
-                title: field("title"),
-                internal_notes: field("internal_notes"),
-                public_notes: field("public_notes"),
-              });
+            else await repository.createRelease(releaseInput);
             await query.refresh();
             onClose();
           });
@@ -432,29 +408,7 @@ function CreateForm({
                 </option>
               ))}
             </select>
-            <Field name="version" label={t("common.version")} maxLength={100} />
-            <p className="text-xs text-muted-foreground">
-              {t("releases.versionHint")}
-            </p>
-            <Label htmlFor="release_type">{t("common.type")}</Label>
-            <select name="release_type" id="release_type" className="field">
-              {["major", "minor", "patch", "hotfix"].map((type) => (
-                <option key={type} value={type}>
-                  {t(`releaseTypes.${type}`)}
-                </option>
-              ))}
-            </select>
-            <Field name="title" label={t("common.title")} maxLength={160} />
-            <TextField
-              name="internal_notes"
-              label={t("releases.internal")}
-              maxLength={20000}
-            />
-            <TextField
-              name="public_notes"
-              label={t("releases.public")}
-              maxLength={20000}
-            />
+            <ReleaseFields />
           </>
         )}
         {action.error && (
@@ -467,43 +421,5 @@ function CreateForm({
         </Button>
       </form>
     </Modal>
-  );
-}
-function Field({
-  name,
-  label,
-  ...props
-}: {
-  name: string;
-  label: string;
-  maxLength: number;
-  pattern?: string;
-}) {
-  return (
-    <div className="space-y-1">
-      <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} required {...props} />
-    </div>
-  );
-}
-function TextField({
-  name,
-  label,
-  maxLength,
-}: {
-  name: string;
-  label: string;
-  maxLength: number;
-}) {
-  return (
-    <div className="space-y-1">
-      <Label htmlFor={name}>{label}</Label>
-      <textarea
-        className="field min-h-24"
-        id={name}
-        name={name}
-        maxLength={maxLength}
-      />
-    </div>
   );
 }

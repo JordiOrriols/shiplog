@@ -31,6 +31,50 @@ describe("Shiplog transport", () => {
     ).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
   });
+  it("validates draft edits and changes before transport and surfaces mutation failures", async () => {
+    const { fetch, response, repository } = setup();
+    await expect(
+      repository.updateDraft("release", { version: "1.0" }),
+    ).rejects.toThrow();
+    await expect(
+      repository.saveChange("release", { category: "invalid" }),
+    ).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockResolvedValueOnce(
+      response({ message: "Only never-published drafts can be edited" }, 400),
+    );
+    await expect(
+      repository.saveChange(
+        "release",
+        {
+          category: "bug_fix",
+          title: "Dates align",
+          description: "",
+          is_public: false,
+        },
+        "change",
+      ),
+    ).rejects.toThrow("Only never-published drafts can be edited");
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rpc/shiplog_save_change"),
+      expect.objectContaining({
+        body: JSON.stringify({
+          release: "release",
+          input: {
+            category: "bug_fix",
+            title: "Dates align",
+            description: "",
+            is_public: false,
+          },
+          change_id: "change",
+        }),
+      }),
+    );
+    fetch.mockResolvedValueOnce(
+      response({ public_notes: "Incomplete projection" }),
+    );
+    await expect(repository.previewRelease("release")).rejects.toThrow();
+  });
   it("validates response shapes and surfaces server errors", async () => {
     const { fetch, response, repository } = setup();
     fetch.mockResolvedValueOnce(

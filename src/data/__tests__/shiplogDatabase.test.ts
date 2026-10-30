@@ -211,6 +211,7 @@ describe("Shiplog workspace foundation", () => {
     for (const item of raw["releases"] as Record<string, unknown>[])
       expect(Object.keys(item).sort()).toEqual([
         "application_id",
+        "changes",
         "id",
         "public_notes",
         "published_at",

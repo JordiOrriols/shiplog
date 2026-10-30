@@ -11,6 +11,12 @@ Release history and communication on the same Supabase project and shared
 - Applications with private-by-default catalog visibility and initial staging and
   production environment records.
 - Manual semantic-version releases with separate internal and public notes.
+- Editable, never-published drafts and categorized changes, private by default.
+- Authenticated public previews using the same server projection and rendering
+  as the public catalog; only explicitly public changes are included.
+- Content is permanently locked after first publication (even after unpublishing)
+  or when the release leaves draft status. Draft mutations record private
+  before/after audit history.
 - Explicit publication/unpublication, independent of lifecycle and deployment.
 - **One revocable public catalog URL per workspace**, listing all included
   applications with a URL-backed application filter. Individual release URLs
@@ -64,6 +70,11 @@ tables. `shiplog_public_catalog(token)` returns only enabled application names
 and published release fields. Catalog tokens are opaque and revocable; they are
 shareable links, not an account permission.
 
+`20261030200000_shiplog_draft_content.sql` adds the draft/change RPCs and the
+shared preview projection. It also backfills first-publication timestamps from
+existing audit history, including previously unpublished releases. The migration
+has been applied to the shared Supabase project with approval.
+
 ```sh
 npx supabase link --project-ref <shared-project-ref>
 npx supabase db push --linked --dry-run
@@ -88,6 +99,9 @@ npm run build
 Database tests use PGlite with the complete shared migration chain and Supabase
 auth-role stand-ins. They test workspace isolation, editor/viewer permissions,
 SemVer constraints, publication, catalog projection and revocation.
+Draft tests cover change CRUD, permission checks, historical locks and migration
+backfill. Browser tests also compare draft preview and anonymous catalog payloads
+to verify that internal notes and private changes never leak.
 Browser tests live in the separate `e2e-tests` project under `tests/shiplog`.
 
 GitHub Actions follows the existing apps: pushes to `main` or `master` compile,
@@ -97,12 +111,11 @@ Pages and the Shiplog custom domain before deployment.
 
 ## Next vertical slices
 
-1. Draft editing, included changes and public preview.
-2. Application-scoped API keys, idempotent CI release creation and test ingestion.
-3. Checklist snapshots, QA/E2E readiness rules and approvals.
-4. Deployment events, environment versions and rollback tracking.
-5. Incidents, affected/fixed/verified versions and private attachments.
-6. Jira email outbox, retries, notifications and comparison.
+1. Application-scoped API keys, idempotent CI release creation and test ingestion.
+2. Checklist snapshots, QA/E2E readiness rules and approvals.
+3. Deployment events, environment versions and rollback tracking.
+4. Incidents, affected/fixed/verified versions and private attachments.
+5. Jira email outbox, retries, notifications and comparison.
 
 The full product brief is the workspace-level `shiplog.md`; this initial
 foundation deliberately does not pretend the later workflows are implemented.

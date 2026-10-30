@@ -13,6 +13,7 @@ import {
 import { createShiplogRepository } from "@/data/repository";
 import { supabase } from "@/data/supabaseClient";
 import { z } from "zod";
+import PublicReleaseContent from "@/components/PublicReleaseContent";
 
 const repository = supabase ? createShiplogRepository(supabase) : null;
 export default function PublicReleases() {
@@ -116,9 +117,7 @@ export default function PublicReleases() {
                       {release.title}
                     </Link>
                   </h2>
-                  <p className="whitespace-pre-wrap break-words text-sm leading-7">
-                    {release.public_notes}
-                  </p>
+                  <PublicReleaseContent release={release} />
                 </article>
               ))}
               {!releases.length && (

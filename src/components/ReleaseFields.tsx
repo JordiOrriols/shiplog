@@ -1,0 +1,107 @@
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { Input, Label } from "@jordiorriols/ui";
+import type { Release } from "@/lib/contracts";
+
+export function Field({
+  name,
+  label,
+  initial = "",
+  ...props
+}: {
+  name: string;
+  label: string;
+  initial?: string;
+  maxLength: number;
+  pattern?: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label htmlFor={name}>{label}</Label>
+      <Input id={name} name={name} required defaultValue={initial} {...props} />
+    </div>
+  );
+}
+export function TextField({
+  name,
+  label,
+  initial = "",
+  maxLength,
+}: {
+  name: string;
+  label: string;
+  initial?: string;
+  maxLength: number;
+}) {
+  return (
+    <div className="space-y-1">
+      <Label htmlFor={name}>{label}</Label>
+      <textarea
+        className="field min-h-24"
+        id={name}
+        name={name}
+        defaultValue={initial}
+        maxLength={maxLength}
+      />
+    </div>
+  );
+}
+export function ReleaseFields({ initial }: { initial?: Release }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <Field
+        name="version"
+        label={t("common.version")}
+        maxLength={100}
+        initial={initial?.version ?? ""}
+      />
+      <p className="text-xs text-muted-foreground">
+        {t("releases.versionHint")}
+      </p>
+      <Label htmlFor="release_type">{t("common.type")}</Label>
+      <select
+        name="release_type"
+        id="release_type"
+        className="field"
+        defaultValue={initial?.release_type ?? "major"}
+      >
+        {["major", "minor", "patch", "hotfix"].map((type) => (
+          <option key={type} value={type}>
+            {t(`releaseTypes.${type}`)}
+          </option>
+        ))}
+      </select>
+      <Field
+        name="title"
+        label={t("common.title")}
+        maxLength={160}
+        initial={initial?.title ?? ""}
+      />
+      <TextField
+        name="internal_notes"
+        label={t("releases.internal")}
+        maxLength={20000}
+        initial={initial?.internal_notes ?? ""}
+      />
+      <TextField
+        name="public_notes"
+        label={t("releases.public")}
+        maxLength={20000}
+        initial={initial?.public_notes ?? ""}
+      />
+    </>
+  );
+}
+export function releaseFormInput(form: HTMLFormElement, application?: string) {
+  const data = new FormData(form);
+  const field = (name: string) => String(data.get(name) ?? "");
+  return {
+    application_id: application ?? field("application_id"),
+    version: field("version"),
+    release_type: field("release_type"),
+    title: field("title"),
+    internal_notes: field("internal_notes"),
+    public_notes: field("public_notes"),
+  };
+}
