@@ -57,9 +57,7 @@
     "new": "New application",
     "slug": "Identifier",
     "platform": "Platform",
-    "public": "Include in public catalog",
-    "private": "Not included in public catalog",
-    "hint": "Public catalogs show every release, including Draft and QA, from applications explicitly included here."
+    "hint": "When the workspace public catalog is enabled, it includes every application and release, including Draft and QA. Internal changes remain private."
   },
   "platforms": {
     "web": "Web",
@@ -71,7 +69,7 @@
   },
   "releases": {
     "autoType": "Major, minor or patch is detected automatically from the highest existing semantic version. The first release is compared with 0.0.0.",
-    "notesEditable": "For included applications, note updates appear immediately on the public page and are audited.",
+    "notesEditable": "When the workspace public catalog is enabled, note updates appear immediately on the public page and are audited.",
     "edit": "Edit draft",
     "historyLocked": "Version details and included changes can be edited in Draft status. Public release notes remain editable in every status.",
     "description": "Every version, with internal context and a public story.",
@@ -82,7 +80,7 @@
     "versionHint": "Semantic version, for example 1.0.0 or 1.1.0-beta.1.",
     "count": "{{count}} releases",
     "applicationCount": "{{count}} applications",
-    "publicCount": "{{count}} releases in included applications",
+    "publicCount": "{{count}} releases available through the public catalog",
     "recent": "Recent releases",
     "detail": "Release details",
     "created": "Created {{date}}"

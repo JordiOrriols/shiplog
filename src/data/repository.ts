@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { WorkspaceShare } from "@jordiorriols/ui";
 import { z } from "zod";
 import {
   applicationSchema,
@@ -47,6 +48,24 @@ export function createShiplogRepository(client: SupabaseClient) {
       .parse(await rpc("shiplog_list_teams", { workspace }));
   }
   return {
+    async sharingAccess(workspace: string): Promise<WorkspaceShare[]> {
+      const schema = z.object({
+        user_id: z.string().uuid(),
+        email: z.string(),
+        app: z.literal("shiplog"),
+        access_level: z.enum(["viewer", "editor"]),
+      });
+      const rows: WorkspaceShare[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await client
+          .rpc("list_workspace_app_shares", { workspace, app_name: "shiplog" })
+          .range(offset, offset + 499);
+        if (error) throw new Error(error.message, { cause: error });
+        const page = z.array(schema).parse(data);
+        rows.push(...page);
+        if (page.length < 500) return rows;
+      }
+    },
     checklistTemplate: async (application: string) => {
       const { data, error } = await client
         .from("shiplog_checklist_templates")
@@ -114,8 +133,6 @@ export function createShiplogRepository(client: SupabaseClient) {
         }),
       );
     },
-    setPublic: (application: string, enabled: boolean) =>
-      rpc("shiplog_set_application_public", { application, enabled }),
     createRelease: async (input: unknown) => {
       const parsed = releaseInputSchema.parse(input);
       return releaseSchema.parse(

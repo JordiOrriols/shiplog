@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
+import { z } from "zod";
 import {
   createMigratedDatabase,
   applyMigrations,
@@ -97,7 +98,10 @@ beforeAll(async () => {
     "insert into public.shiplog_audit_events(workspace_id,release_id,event,details) select $1,id,'release.updated',jsonb_build_object('before',to_jsonb(r),'after',to_jsonb(r)) from public.shiplog_releases r where id=$2",
     [workspace, legacy],
   );
-  await applyMigrations(db, { from: migration });
+  await applyMigrations(db, {
+    from: migration,
+    until: "20261030233000_shiplog_all_applications_catalog.sql",
+  });
   await login(owner);
   token = await value("select public.shiplog_portal($1,true) as value", [
     workspace,
@@ -107,7 +111,7 @@ afterAll(async () => {
   await db?.close();
 });
 
-describe("release-only management on the complete migration chain", () => {
+describe("release-only management before automatic application inclusion", () => {
   it("deletes deployment records, environment relations, publication RPCs and retired audit fields while preserving releases and decisions", async () => {
     for (const table of [
       "shiplog_deployments",
@@ -169,7 +173,9 @@ describe("release-only management on the complete migration chain", () => {
       "select to_jsonb(public.shiplog_save_application($1,'Private app')) as value",
       [workspace],
     );
-    const app = applicationSchema.parse(raw);
+    const app = applicationSchema
+      .extend({ public_enabled: z.boolean() })
+      .parse(raw);
     expect(app.public_enabled).toBe(false);
     const updated = applicationSchema.parse(
       await value(

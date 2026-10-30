@@ -6,7 +6,6 @@ export const applicationSchema = z.object({
   name: z.string(),
   description: z.string(),
   team_id: z.string().uuid().nullable(),
-  public_enabled: z.boolean(),
   created_at: z.string(),
 });
 export const releaseSchema = z.object({
