@@ -86,6 +86,70 @@ describe("Shiplog transport", () => {
     fetch.mockResolvedValueOnce(response({ name: "Missing releases" }));
     await expect(repository.publicCatalog("token")).rejects.toThrow();
   });
+  it("validates manual readiness input before transport and preserves server failures", async () => {
+    const { fetch, response, repository } = setup();
+    await expect(
+      repository.saveChecklistTemplate("application", {
+        revision: 1,
+        items: [{ title: "Incomplete" }],
+      }),
+    ).rejects.toThrow();
+    await expect(
+      repository.recordManualQa("release", { qa_status: "invalid", notes: "" }),
+    ).rejects.toThrow();
+    await expect(
+      repository.transitionReadiness("release", "approved", "x".repeat(4001)),
+    ).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockResolvedValueOnce(
+      response(
+        { message: "Checklist template changed. Reload before saving." },
+        409,
+      ),
+    );
+    await expect(
+      repository.saveChecklistTemplate("application", {
+        revision: 2,
+        items: [],
+      }),
+    ).rejects.toThrow("Checklist template changed");
+    expect(fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining("/rpc/shiplog_save_checklist_template"),
+      expect.objectContaining({
+        body: JSON.stringify({
+          application: "application",
+          items: [],
+          expected_revision: 2,
+        }),
+      }),
+    );
+    fetch.mockResolvedValueOnce(
+      response({ message: "Workspace owner access required" }, 403),
+    );
+    await expect(
+      repository.transitionReadiness("release", "approved", "Emergency"),
+    ).rejects.toThrow("Workspace owner access required");
+  });
+  it("distinguishes an unconfigured template from transport failures and validates readiness responses", async () => {
+    const { fetch, response, repository } = setup();
+    fetch.mockResolvedValueOnce(response(null));
+    expect(await repository.checklistTemplate("application")).toEqual({
+      revision: 0,
+      items: [],
+    });
+    expect(fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining("application_id=eq.application"),
+      expect.anything(),
+    );
+    fetch.mockResolvedValueOnce(
+      response({ message: "Template unavailable" }, 500),
+    );
+    await expect(repository.checklistTemplate("application")).rejects.toThrow(
+      "Template unavailable",
+    );
+    fetch.mockResolvedValueOnce(response({ qa_status: "passed", items: [] }));
+    await expect(repository.readiness("release")).rejects.toThrow();
+  });
   it("pages workspace reads without truncation and scopes each request", async () => {
     const { fetch, response, repository } = setup();
     const application = {
