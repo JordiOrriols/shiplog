@@ -23,6 +23,9 @@ does not claim that a release is deployed or approved.
 
 ## Local development
 
+Use Node.js 26 LTS with npm 11.20.0. Run `nvm install && nvm use` to select
+the `.nvmrc` version used by CI and deployment.
+
 UI's Shiplog registry update is in https://github.com/JordiOrriols/ui/pull/1.
 The intended registry dependency is UI `^0.3.17`; merge/release that PR before
 installing this project on a fresh checkout. Local validation during bootstrapping
