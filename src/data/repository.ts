@@ -8,6 +8,10 @@ import {
   changeSchema,
   changeInputSchema,
   publicReleaseSchema,
+  checklistTemplateSchema,
+  readinessSchema,
+  manualQaInputSchema,
+  type ReadinessTransition,
 } from "@/lib/contracts";
 
 export function createShiplogRepository(client: SupabaseClient) {
@@ -38,6 +42,44 @@ export function createShiplogRepository(client: SupabaseClient) {
     }
   }
   return {
+    checklistTemplate: async (application: string) => {
+      const { data, error } = await client
+        .from("shiplog_checklist_templates")
+        .select("revision,items")
+        .eq("application_id", application)
+        .maybeSingle();
+      if (error) throw new Error(error.message, { cause: error });
+      return checklistTemplateSchema.parse(data ?? { revision: 0, items: [] });
+    },
+    saveChecklistTemplate: async (application: string, input: unknown) => {
+      const parsed = checklistTemplateSchema.parse(input);
+      await rpc("shiplog_save_checklist_template", {
+        application,
+        items: parsed.items,
+        expected_revision: parsed.revision,
+      });
+    },
+    readiness: async (release: string) =>
+      readinessSchema.parse(await rpc("shiplog_get_readiness", { release })),
+    completeChecklistItem: (
+      release: string,
+      item: string,
+      completed: boolean,
+    ) => rpc("shiplog_complete_checklist_item", { release, item, completed }),
+    recordManualQa: async (release: string, input: unknown) => {
+      const parsed = manualQaInputSchema.parse(input);
+      await rpc("shiplog_record_manual_qa", { release, ...parsed });
+    },
+    transitionReadiness: async (
+      release: string,
+      transition: ReadinessTransition,
+      reason = "",
+    ) =>
+      rpc("shiplog_transition_readiness", {
+        release,
+        transition,
+        override_reason: z.string().trim().max(4000).parse(reason),
+      }),
     loadWorkspace: async (workspace: string) => {
       const [applications, releases] = await Promise.all([
         list(

@@ -14,8 +14,9 @@ import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
 import { useWorkspace } from "@/data/WorkspaceProvider";
 import { useData } from "@/data/DataProvider";
-import { type Release } from "@/lib/contracts";
+import { type Release, type Application } from "@/lib/contracts";
 import ReleaseDetails from "@/components/ReleaseDetails";
+import ChecklistTemplate from "@/components/ChecklistTemplate";
 import {
   Field,
   TextField,
@@ -37,6 +38,8 @@ export default function WorkspacePage({
   const [filter, setFilter] = useState("");
   const [publication, setPublication] = useState<Release | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [templateApplication, setTemplateApplication] =
+    useState<Application | null>(null);
   const [publicDraft, setPublicDraft] = useState<{
     id: string;
     enabled: boolean;
@@ -138,6 +141,15 @@ export default function WorkspacePage({
                 {app.description}
               </p>
               <p className="text-xs font-mono">{app.slug}</p>
+              {workspace.access_level === "owner" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setTemplateApplication(app)}
+                >
+                  {t("readiness.template")}
+                </Button>
+              )}
               {canEdit ? (
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -281,6 +293,12 @@ export default function WorkspacePage({
           release={detail}
           canEdit={canEdit}
           onClose={() => setDetailId(null)}
+        />
+      )}
+      {templateApplication && (
+        <ChecklistTemplate
+          application={templateApplication}
+          onClose={() => setTemplateApplication(null)}
         />
       )}
       <ConfirmDialog

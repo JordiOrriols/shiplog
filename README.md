@@ -18,14 +18,25 @@ Release history and communication on the same Supabase project and shared
   or when the release leaves draft status. Draft mutations record private
   before/after audit history.
 - Explicit publication/unpublication, independent of lifecycle and deployment.
+- Owner-managed application checklist templates, snapshotted for each new release.
+  Later template edits never alter existing release checklists.
+- Manual QA results and observations, checklist completion with actor/timestamps,
+  and owner-only approval. Editors can record QA and complete checklist items.
+- Readiness gates require mandatory items before entering QA, and passed manual QA
+  plus mandatory items before approval. Owners can explicitly override with an
+  audited reason, without falsifying checklist completion or QA results.
+- Approved readiness is locked until explicitly reopened with a reason; reopening
+  revokes approval and resets QA while retaining checklist completion.
 - **One revocable public catalog URL per workspace**, listing all included
   applications with a URL-backed application filter. Individual release URLs
   remain inside that same catalog.
 - Database-enforced authorization, unique application versions and append-only
   audit events. Public responses are explicitly serialized on the server.
 
-There are no fake deployment or QA statuses. Creating or publishing release notes
-does not claim that a release is deployed or approved.
+Creating or publishing release notes does not claim that a release is deployed or
+approved. Approval does not deploy or publish anything. Releases are created
+manually; API keys, API-based creation, automated ingestion and E2E result tracking
+are intentionally deferred.
 
 ## Local development
 
@@ -75,6 +86,13 @@ shared preview projection. It also backfills first-publication timestamps from
 existing audit history, including previously unpublished releases. The migration
 has been applied to the shared Supabase project with approval.
 
+`20261030210000_shiplog_manual_readiness.sql` has been applied to shared
+Supabase with approval. It adds `shiplog_checklist_templates`, `shiplog_readiness` and
+`shiplog_checklist_items`, with RLS and RPC-only writes. Existing releases get
+empty revision-0 snapshots; future templates never retroactively change them.
+Template saves use optimistic revision checks to prevent overwriting concurrent
+edits.
+
 ```sh
 npx supabase link --project-ref <shared-project-ref>
 npx supabase db push --linked --dry-run
@@ -103,6 +121,10 @@ Draft tests cover change CRUD, permission checks, historical locks and migration
 backfill. Browser tests also compare draft preview and anonymous catalog payloads
 to verify that internal notes and private changes never leak.
 Browser tests live in the separate `e2e-tests` project under `tests/shiplog`.
+Manual readiness is tested against the complete migration chain in PGlite and
+with component tests. `manual-readiness.spec.ts` uses live Supabase to verify
+template snapshots, QA gates, owner overrides, reopening, persisted approval and
+public-data exclusion. Role restrictions also have database and component coverage.
 
 GitHub Actions follows the existing apps: pushes to `main` or `master` compile,
 lint, format-check, test and build before GitHub Pages deployment. Configure
@@ -111,11 +133,12 @@ Pages and the Shiplog custom domain before deployment.
 
 ## Next vertical slices
 
-1. Application-scoped API keys, idempotent CI release creation and test ingestion.
-2. Checklist snapshots, QA/E2E readiness rules and approvals.
-3. Deployment events, environment versions and rollback tracking.
-4. Incidents, affected/fixed/verified versions and private attachments.
-5. Jira email outbox, retries, notifications and comparison.
+1. Manual deployment events, environment versions and rollback tracking.
+2. Incidents, affected/fixed/verified versions and private attachments.
+3. Jira email outbox, retries, notifications and comparison.
+
+API keys, API-based release creation, automated ingestion and E2E result tracking
+are out of the current manual-only scope.
 
 The full product brief is the workspace-level `shiplog.md`; this initial
 foundation deliberately does not pretend the later workflows are implemented.

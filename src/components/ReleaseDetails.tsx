@@ -24,6 +24,7 @@ import {
   releaseFormInput,
 } from "./ReleaseFields";
 import PublicReleaseContent from "./PublicReleaseContent";
+import ReleaseReadiness from "./ReleaseReadiness";
 
 export default function ReleaseDetails({
   release,
@@ -39,7 +40,9 @@ export default function ReleaseDetails({
   const workspaceData = useWorkspaceData();
   const client = useQueryClient();
   const action = useAsyncAction();
-  const [mode, setMode] = useState<"details" | "edit" | "preview">("details");
+  const [mode, setMode] = useState<
+    "details" | "edit" | "preview" | "readiness"
+  >("details");
   const [editingChange, setEditingChange] = useState<
     ReleaseChange | "new" | null
   >(null);
@@ -107,6 +110,15 @@ export default function ReleaseDetails({
           )}
           <Button
             size="sm"
+            variant={mode === "readiness" ? "secondary" : "ghost"}
+            aria-pressed={mode === "readiness"}
+            disabled={action.busy}
+            onClick={() => setMode("readiness")}
+          >
+            {t("readiness.title")}
+          </Button>
+          <Button
+            size="sm"
             variant={mode === "preview" ? "secondary" : "ghost"}
             aria-pressed={mode === "preview"}
             disabled={action.busy}
@@ -125,7 +137,9 @@ export default function ReleaseDetails({
             {action.error}
           </p>
         )}
-        {mode === "edit" && editable ? (
+        {mode === "readiness" ? (
+          <ReleaseReadiness release={release} canEdit={canEdit} />
+        ) : mode === "edit" && editable ? (
           <form
             className="space-y-4"
             onSubmit={(event) => {

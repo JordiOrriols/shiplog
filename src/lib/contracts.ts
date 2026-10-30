@@ -80,6 +80,51 @@ export type Release = z.infer<typeof releaseSchema>;
 export type PublicCatalog = z.infer<typeof publicCatalogSchema>;
 export type ReleaseChange = z.infer<typeof changeSchema>;
 export type PublicRelease = z.infer<typeof publicReleaseSchema>;
+export const checklistDefinitionSchema = z.object({
+  category: z.string().trim().min(1).max(80),
+  title: z.string().trim().min(1).max(160),
+  description: z.string().max(4000),
+  mandatory: z.boolean(),
+});
+export const checklistTemplateSchema = z.object({
+  revision: z.number().int().min(0),
+  items: z.array(checklistDefinitionSchema).max(100),
+});
+export const QA_STATUSES = [
+  "not_started",
+  "running",
+  "passed",
+  "failed",
+  "partially_passed",
+  "skipped",
+] as const;
+export const manualQaInputSchema = z.object({
+  qa_status: z.enum(QA_STATUSES),
+  notes: z.string().max(10000),
+});
+export const readinessSchema = z.object({
+  release_id: z.string().uuid(),
+  template_revision: z.number().int(),
+  qa_status: z.enum(QA_STATUSES),
+  qa_notes: z.string(),
+  qa_recorded_by: z.string().uuid().nullable(),
+  qa_recorded_at: z.string().nullable(),
+  approved_by: z.string().uuid().nullable(),
+  approved_at: z.string().nullable(),
+  approval_override_reason: z.string(),
+  items: z.array(
+    checklistDefinitionSchema.extend({
+      id: z.string().uuid(),
+      position: z.number().int(),
+      completed_by: z.string().uuid().nullable(),
+      completed_at: z.string().nullable(),
+    }),
+  ),
+});
+export type ChecklistDefinition = z.infer<typeof checklistDefinitionSchema>;
+export type ChecklistTemplate = z.infer<typeof checklistTemplateSchema>;
+export type Readiness = z.infer<typeof readinessSchema>;
+export type ReadinessTransition = "ready_for_qa" | "approved" | "reopen_qa";
 export function isEditableDraft(release: Release) {
   return release.status === "draft" && release.first_published_at === null;
 }
