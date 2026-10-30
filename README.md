@@ -66,8 +66,10 @@ are intentionally deferred.
 Use Node.js 26 LTS with npm 11.20.0. Run `nvm install && nvm use` to select
 the `.nvmrc` version used by CI and deployment.
 
-Shiplog uses UI `^0.3.18` from GitHub Packages, including the shared Shiplog
+Shiplog uses UI `^0.3.19` from GitHub Packages, including the shared Shiplog
 project registration, workspace sharing and authentication redirects.
+Header, project-menu and login/welcome icons reuse the shared orange Shiplog
+branding through `projectId` and `ProjectIcon`; no local palette is maintained.
 The committed lockfile contains registry packages, not local links or archives.
 
 ```sh
