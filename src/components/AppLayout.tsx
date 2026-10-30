@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -14,12 +14,12 @@ import {
   LanguageSelector,
   WorkspaceBar,
   getWorkspaceLabels,
+  type WorkspaceSharingConfig,
 } from "@jordiorriols/ui";
 import {
   LayoutDashboard,
   Boxes,
   History,
-  Megaphone,
   FolderOpen,
   Rocket,
 } from "@jordiorriols/ui/icons";
@@ -31,14 +31,30 @@ const sections = [
   { path: "/", key: "overview", icon: LayoutDashboard },
   { path: "/applications", key: "applications", icon: Boxes },
   { path: "/releases", key: "releases", icon: History },
-  { path: "/portal", key: "portal", icon: Megaphone },
 ];
 export default function AppLayout() {
   const { t, i18n } = useTranslation();
-  const { user, signOut, workspaceApi } = useData();
+  const { user, signOut, workspaceApi, repository } = useData();
   const { workspaces, workspace, select, refresh, loading, error } =
     useWorkspace();
   const action = useAsyncAction();
+  const workspaceId = workspace?.id;
+  const sharing = useMemo<WorkspaceSharingConfig | undefined>(
+    () =>
+      repository && workspaceId
+        ? {
+            readAccess: () => repository.sharingAccess(workspaceId),
+            publicLink: {
+              load: () => repository.portal(workspaceId),
+              setEnabled: (enabled) => repository.portal(workspaceId, enabled),
+              getUrl: (token) =>
+                `${location.href.split("#")[0]}#/public/${token}/releases`,
+              description: t("portal.description"),
+            },
+          }
+        : undefined,
+    [repository, workspaceId, user?.id, t],
+  );
   return (
     <AppPage className="flex min-h-screen flex-col">
       <AppHeader
@@ -78,6 +94,7 @@ export default function AppLayout() {
                   }}
                   onSharesChanged={refresh}
                   labels={getWorkspaceLabels(i18n.language)}
+                  {...(sharing ? { sharing } : {})}
                 />
               )
             }

@@ -10,7 +10,6 @@ import { EntryGate } from "./components/EntryGate";
 import { PasswordResetDialog } from "./components/PasswordResetDialog";
 import AppLayout from "./components/AppLayout";
 import WorkspacePage from "./pages/WorkspacePage";
-import PortalPage from "./pages/PortalPage";
 import PublicReleases from "./pages/PublicReleases";
 
 const queryClient = new QueryClient({
@@ -45,7 +44,7 @@ function Internal() {
                 path="releases"
                 element={<WorkspacePage section="releases" />}
               />
-              <Route path="portal" element={<PortalPage />} />
+              <Route path="portal" element={<Navigate to="/" replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

@@ -36,7 +36,10 @@ Release history and communication on the same Supabase project and shared
   aggregate readiness gates, deployment records, publication actions or preview tab.
 - **One revocable public catalog URL per workspace**, listing all
   applications with a URL-backed application filter. Individual release URLs
-  remain inside that same catalog.
+  remain inside that same catalog. Open workspace **Share** to configure people
+  first, then the public link. Owners alone manage people and enable/revoke links;
+  Shiplog editors/viewers see current-app access and can copy/open existing links.
+  The former `/portal` management route redirects to the overview.
 - Database-enforced authorization, unique application versions and append-only
   audit events. Public responses are explicitly serialized on the server.
 
@@ -49,7 +52,7 @@ are intentionally deferred.
 Use Node.js 26 LTS with npm 11.20.0. Run `nvm install && nvm use` to select
 the `.nvmrc` version used by CI and deployment.
 
-Shiplog uses UI `^0.3.18` from GitHub Packages, including the shared Shiplog
+Shiplog uses UI `^0.3.20` from GitHub Packages, including the shared Shiplog
 project registration, workspace sharing and authentication redirects.
 The committed lockfile contains registry packages, not local links or archives.
 
@@ -69,6 +72,12 @@ Authentication screens reuse the existing six-language auth catalogs.
 The first release-management screens currently use English fallback copy.
 
 ## Database
+
+`20261030234000_workspace_sharing_directory.sql` (also tracked identically in
+Planner) and `20261030235000_shiplog_sharing_permissions.sql` have been applied
+once to the shared database with approval. They authorize current-app editor/viewer directory and token reads
+while restricting public-link writes to owners. Anonymous, other-app and
+linked-team-only access cannot read the directory.
 
 Migrations preceding `20261030190000_shiplog_core.sql` are the shared project's
 existing history, copied so a clean test database applies the real migrations
