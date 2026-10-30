@@ -43,7 +43,7 @@ export function LoginDialog({
         switchToSignUp: t("auth.switchToSignUp"),
         switchToSignIn: t("auth.switchToSignIn"),
         backToSignIn: t("auth.backToSignIn"),
-        cancel: t("auth.cancel"),
+        cancel: t("common.close"),
         signIn: t("auth.signIn"),
         signUp: t("auth.signUp"),
         sendResetEmail: t("auth.sendResetEmail"),

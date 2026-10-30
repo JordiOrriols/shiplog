@@ -23,10 +23,7 @@ import {
   TextField,
   releaseFormInput,
 } from "./ReleaseFields";
-import PublicReleaseContent from "./PublicReleaseContent";
 import ReleaseReadiness from "./ReleaseReadiness";
-import ApplicationDeployments from "./ApplicationDeployments";
-import ReleaseApprovals from "./ReleaseApprovals";
 
 export default function ReleaseDetails({
   release,
@@ -42,16 +39,13 @@ export default function ReleaseDetails({
   const workspaceData = useWorkspaceData();
   const client = useQueryClient();
   const action = useAsyncAction();
-  const [mode, setMode] = useState<
-    "details" | "edit" | "preview" | "readiness" | "deployments" | "approvals"
-  >("details");
+  const [mode, setMode] = useState<"details" | "edit" | "readiness">("details");
   const [editingChange, setEditingChange] = useState<
     ReleaseChange | "new" | null
   >(null);
   const [deleting, setDeleting] = useState<ReleaseChange | null>(null);
   const editable = canEdit && isEditableDraft(release);
   const changesKey = ["shiplog-changes", user?.id, release.id];
-  const previewKey = ["shiplog-preview", user?.id, release.id];
   const changes = useQuery({
     queryKey: changesKey,
     queryFn: () => {
@@ -59,19 +53,10 @@ export default function ReleaseDetails({
       return repository.listChanges(release.id);
     },
   });
-  const preview = useQuery({
-    queryKey: previewKey,
-    enabled: mode === "preview",
-    queryFn: () => {
-      if (!repository) throw new Error(t("portal.unavailable"));
-      return repository.previewRelease(release.id);
-    },
-  });
   async function refresh() {
     await Promise.all([
       workspaceData.refresh(),
       client.invalidateQueries({ queryKey: changesKey }),
-      client.invalidateQueries({ queryKey: previewKey }),
     ]);
   }
   return (
@@ -80,6 +65,24 @@ export default function ReleaseDetails({
       title={`${release.version} — ${release.title}`}
       description={t("releases.detail")}
       closeLabel={t("common.close")}
+      footer={
+        canEdit &&
+        mode !== "readiness" && (
+          <Button
+            type="submit"
+            form={
+              editingChange && editable
+                ? "release-change-form"
+                : mode === "edit" && editable
+                  ? "release-edit-form"
+                  : "release-notes-form"
+            }
+            disabled={action.busy}
+          >
+            {t("common.save")}
+          </Button>
+        )
+      }
       onOpenChange={(open) => {
         if (!open && !action.busy) onClose();
       }}
@@ -95,7 +98,10 @@ export default function ReleaseDetails({
             variant={mode === "details" ? "secondary" : "ghost"}
             aria-pressed={mode === "details"}
             disabled={action.busy}
-            onClick={() => setMode("details")}
+            onClick={() => {
+              setEditingChange(null);
+              setMode("details");
+            }}
           >
             {t("releases.detail")}
           </Button>
@@ -105,7 +111,10 @@ export default function ReleaseDetails({
               variant={mode === "edit" ? "secondary" : "ghost"}
               aria-pressed={mode === "edit"}
               disabled={action.busy}
-              onClick={() => setMode("edit")}
+              onClick={() => {
+                setEditingChange(null);
+                setMode("edit");
+              }}
             >
               {t("releases.edit")}
             </Button>
@@ -115,36 +124,12 @@ export default function ReleaseDetails({
             variant={mode === "readiness" ? "secondary" : "ghost"}
             aria-pressed={mode === "readiness"}
             disabled={action.busy}
-            onClick={() => setMode("readiness")}
+            onClick={() => {
+              setEditingChange(null);
+              setMode("readiness");
+            }}
           >
             {t("simple.qa")}
-          </Button>
-          <Button
-            size="sm"
-            variant={mode === "approvals" ? "secondary" : "ghost"}
-            aria-pressed={mode === "approvals"}
-            disabled={action.busy}
-            onClick={() => setMode("approvals")}
-          >
-            {t("simple.approvals")}
-          </Button>
-          <Button
-            size="sm"
-            variant={mode === "deployments" ? "secondary" : "ghost"}
-            aria-pressed={mode === "deployments"}
-            disabled={action.busy}
-            onClick={() => setMode("deployments")}
-          >
-            {t("deployments.title")}
-          </Button>
-          <Button
-            size="sm"
-            variant={mode === "preview" ? "secondary" : "ghost"}
-            aria-pressed={mode === "preview"}
-            disabled={action.busy}
-            onClick={() => setMode("preview")}
-          >
-            {t("releases.preview")}
           </Button>
         </div>
         {!isEditableDraft(release) && (
@@ -157,14 +142,14 @@ export default function ReleaseDetails({
             {action.error}
           </p>
         )}
-        {canEdit && (
+        {canEdit && mode === "details" && (
           <label className="flex items-center gap-3 text-sm">
             {t("simple.status")}
             <select
               className="field max-w-40"
               aria-label={t("simple.status")}
               value={release.status}
-              disabled={action.busy}
+              disabled={action.busy || !!editingChange}
               onChange={(event) => {
                 const status = event.target.value;
                 if (
@@ -189,18 +174,11 @@ export default function ReleaseDetails({
             </select>
           </label>
         )}
-        {mode === "approvals" ? (
-          <ReleaseApprovals releaseId={release.id} />
-        ) : mode === "deployments" ? (
-          <ApplicationDeployments
-            applicationId={release.application_id}
-            canEdit={canEdit}
-            initialReleaseId={release.id}
-          />
-        ) : mode === "readiness" ? (
+        {mode === "readiness" ? (
           <ReleaseReadiness release={release} canEdit={canEdit} />
         ) : mode === "edit" && editable ? (
           <form
+            id="release-edit-form"
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
@@ -219,28 +197,7 @@ export default function ReleaseDetails({
             <fieldset disabled={action.busy} className="space-y-4">
               <ReleaseFields initial={release} />
             </fieldset>
-            <Button type="submit" disabled={action.busy}>
-              {t("common.save")}
-            </Button>
           </form>
-        ) : mode === "preview" ? (
-          <>
-            <p className="text-xs text-muted-foreground">
-              {t("releases.previewNotice")}
-            </p>
-            {preview.isPending ? (
-              <AppSkeleton fullPage={false} label={t("common.loading")} />
-            ) : preview.error ? (
-              <div role="alert">
-                <p>{preview.error.message}</p>
-                <Button onClick={() => void preview.refetch()}>
-                  {t("common.retry")}
-                </Button>
-              </div>
-            ) : (
-              <PublicReleaseContent release={preview.data} />
-            )}
-          </>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
@@ -252,6 +209,7 @@ export default function ReleaseDetails({
             </p>
             {canEdit ? (
               <form
+                id="release-notes-form"
                 key={release.public_notes}
                 className="space-y-3"
                 onSubmit={(event) => {
@@ -266,7 +224,9 @@ export default function ReleaseDetails({
                   });
                 }}
               >
-                <fieldset disabled={action.busy}>
+                <fieldset
+                  disabled={action.busy || (editable && !!editingChange)}
+                >
                   <TextField
                     name="public_notes"
                     label={t("releases.public")}
@@ -277,9 +237,6 @@ export default function ReleaseDetails({
                 <p className="text-xs text-muted-foreground">
                   {t("releases.notesEditable")}
                 </p>
-                <Button type="submit" disabled={action.busy}>
-                  {t("simple.saveNotes")}
-                </Button>
               </form>
             ) : (
               <section>
@@ -366,6 +323,7 @@ export default function ReleaseDetails({
               )}
               {editable && editingChange && (
                 <form
+                  id="release-change-form"
                   key={editingChange === "new" ? "new" : editingChange.id}
                   className="space-y-3 rounded-lg border border-border p-3"
                   onSubmit={(event) => {
@@ -432,25 +390,9 @@ export default function ReleaseDetails({
                       {t("changes.public")}
                     </label>
                   </fieldset>
-                  <div className="flex gap-2">
-                    <Button type="submit" disabled={action.busy}>
-                      {t("common.save")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      disabled={action.busy}
-                      onClick={() => setEditingChange(null)}
-                    >
-                      {t("common.cancel")}
-                    </Button>
-                  </div>
                 </form>
               )}
             </section>
-            <p className="text-xs text-muted-foreground">
-              {t("releases.publicationNotice")}
-            </p>
           </>
         )}
       </div>
@@ -459,7 +401,7 @@ export default function ReleaseDetails({
         title={t("changes.deleteNamed", { title: deleting?.title ?? "" })}
         description={t("changes.deleteDescription")}
         confirmLabel={t("common.delete")}
-        cancelLabel={t("common.cancel")}
+        cancelLabel={t("common.close")}
         onCancel={() => {
           if (!action.busy) setDeleting(null);
         }}

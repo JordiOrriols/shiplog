@@ -100,13 +100,13 @@ export default function PublicReleases() {
               {releases.map((release) => (
                 <article key={release.id} className="panel space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="font-medium">
+                    <span className="shrink-0 rounded-md bg-brand/10 px-2 py-0.5 text-[11px] font-medium tracking-normal text-brand">
                       {names.get(release.application_id)}
                     </span>
-                    <time dateTime={release.published_at}>
+                    <time dateTime={release.created_at}>
                       {new Intl.DateTimeFormat(i18n.language, {
                         dateStyle: "long",
-                      }).format(new Date(release.published_at))}
+                      }).format(new Date(release.created_at))}
                     </time>
                   </div>
                   <h2 className="text-xl font-semibold">
@@ -117,6 +117,9 @@ export default function PublicReleases() {
                       {release.title}
                     </Link>
                   </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {t(`statuses.${release.status}`)}
+                  </p>
                   <PublicReleaseContent release={release} />
                 </article>
               ))}

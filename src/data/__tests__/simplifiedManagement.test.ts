@@ -5,11 +5,8 @@ import {
   createMigratedDatabase,
   applyMigrations,
 } from "./support/migratedDatabase";
-import {
-  applicationSchema,
-  releaseSchema,
-  publicCatalogSchema,
-} from "@/lib/contracts";
+import { applicationSchema } from "@/lib/contracts";
+import { releaseSchema, publicCatalogSchema } from "./support/legacyContracts";
 
 const migration = "20261030230000_shiplog_simplify_management.sql";
 const owner = "11111111-1111-4111-8111-111111111111";
@@ -129,14 +126,17 @@ beforeAll(async () => {
       }),
     ],
   );
-  await applyMigrations(db, { from: migration });
+  await applyMigrations(db, {
+    from: migration,
+    until: "20261030232000_shiplog_release_only.sql",
+  });
   await login(owner);
 });
 afterAll(async () => {
   await db?.close();
 });
 
-describe("simplified release management on the complete migration chain", () => {
+describe("historical simplified release management before retiring deployments", () => {
   it("permanently removes obsolete columns and audit snapshots while preserving member approval", async () => {
     const application = await value<Record<string, unknown>>(
       "select to_jsonb(a) as value from public.shiplog_applications a where id=$1",

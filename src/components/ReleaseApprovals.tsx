@@ -31,26 +31,46 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
       </div>
     );
   const own = query.data.find((member) => member.user_id === user?.id);
-  const decide = (approved: boolean) => {
-    if (!repository || action.busy) return;
-    void action.run(async () => {
-      await repository.decideRelease(releaseId, approved);
-      await client.invalidateQueries({ queryKey: key });
-    });
-  };
   return (
-    <section className="space-y-4">
-      <h3 className="font-semibold">{t("simple.approvals")}</h3>
-      <ul className="divide-y divide-border">
+    <section
+      aria-label={t("simple.approvals")}
+      className="w-full min-w-0 space-y-3 sm:max-w-sm"
+    >
+      <select
+        className="field"
+        aria-label={t("simple.yourDecision")}
+        value={
+          own?.approved === true
+            ? "approved"
+            : own?.approved === false
+              ? "disapproved"
+              : ""
+        }
+        disabled={action.busy}
+        onChange={(event) => {
+          if (!repository || action.busy) return;
+          const approved = event.target.value === "approved";
+          void action.run(async () => {
+            await repository.decideRelease(releaseId, approved);
+            await client.invalidateQueries({ queryKey: key });
+          });
+        }}
+      >
+        <option value="" disabled>
+          {t("simple.pending")}
+        </option>
+        <option value="approved">{t("simple.approve")}</option>
+        <option value="disapproved">{t("simple.disapprove")}</option>
+      </select>
+      <ul className="flex flex-wrap gap-2">
         {query.data.map((member) => (
           <li
             key={member.user_id}
-            className="flex items-center justify-between gap-3 py-3 text-sm"
+            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs ${member.approved === true ? "border-green-600/20 bg-green-600/10 text-green-700 dark:text-green-400" : member.approved === false ? "border-destructive/20 bg-destructive/10 text-destructive" : "border-border bg-muted text-muted-foreground"}`}
+            title={`${member.name}: ${t(member.approved === true ? "simple.approved" : member.approved === false ? "simple.disapproved" : "simple.pending")}`}
           >
             <span className="break-all">{member.name}</span>
-            <span
-              className={`flex shrink-0 items-center gap-1 text-xs ${member.approved === true ? "text-green-600" : member.approved === false ? "text-destructive" : "text-muted-foreground"}`}
-            >
+            <span className="flex shrink-0 items-center gap-1">
               {member.approved === true ? (
                 <Check className="size-4" aria-hidden="true" />
               ) : member.approved === false ? (
@@ -67,23 +87,6 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
           </li>
         ))}
       </ul>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          disabled={action.busy || own?.approved === true}
-          onClick={() => decide(true)}
-        >
-          <Check className="size-4" />
-          {t("simple.approve")}
-        </Button>
-        <Button
-          variant="outline"
-          disabled={action.busy || own?.approved === false}
-          onClick={() => decide(false)}
-        >
-          <X className="size-4" />
-          {t("simple.disapprove")}
-        </Button>
-      </div>
       {action.error && (
         <p role="alert" className="text-sm text-destructive">
           {action.error}

@@ -112,7 +112,7 @@ export default function PortalPage() {
         title={t("portal.revoke")}
         description={t("portal.revokeDescription")}
         confirmLabel={t("portal.revoke")}
-        cancelLabel={t("common.cancel")}
+        cancelLabel={t("common.close")}
         onCancel={() => {
           if (!action.busy) setRevoking(false);
         }}

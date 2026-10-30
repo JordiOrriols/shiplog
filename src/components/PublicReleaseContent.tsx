@@ -2,7 +2,6 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { CHANGE_CATEGORIES, type PublicRelease } from "@/lib/contracts";
 
-/** Render the same allow-listed payload in public pages and authenticated previews. */
 export default function PublicReleaseContent({
   release,
 }: {
