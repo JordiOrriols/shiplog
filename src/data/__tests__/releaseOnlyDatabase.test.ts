@@ -6,11 +6,8 @@ import {
   createMigratedDatabase,
   applyMigrations,
 } from "./support/migratedDatabase";
-import {
-  applicationSchema,
-  publicCatalogSchema,
-  releaseSchema,
-} from "@/lib/contracts";
+import { applicationSchema, releaseSchema } from "@/lib/contracts";
+import { releaseOnlyCatalogSchema as publicCatalogSchema } from "./support/legacyContracts";
 
 const migration = "20261030232000_shiplog_release_only.sql";
 const owner = "11111111-1111-4111-8111-111111111111";

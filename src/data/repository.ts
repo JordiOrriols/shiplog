@@ -6,8 +6,7 @@ import {
   releaseSchema,
   publicCatalogSchema,
   releaseInputSchema,
-  changeSchema,
-  changeInputSchema,
+  plannerFeatureSchema,
   checklistTemplateSchema,
   readinessSchema,
   teamSchema,
@@ -146,18 +145,26 @@ export function createShiplogRepository(client: SupabaseClient) {
           input: releaseInputSchema.parse(input),
         }),
       ),
-    listChanges: (release: string) =>
-      list("shiplog_release_changes", changeSchema, "release_id", release),
-    saveChange: async (release: string, input: unknown, changeId?: string) =>
-      changeSchema.parse(
-        await rpc("shiplog_save_change", {
-          release,
-          input: changeInputSchema.parse(input),
-          ...(changeId ? { change_id: changeId } : {}),
-        }),
-      ),
-    deleteChange: (release: string, changeId: string) =>
-      rpc("shiplog_delete_change", { release, change_id: changeId }),
+    updateDetails: async (release: string, input: unknown, status: string) =>
+      rpc("shiplog_update_details", {
+        release,
+        input: releaseInputSchema.parse(input),
+        status: z.enum(["draft", "qa", "released"]).parse(status),
+      }),
+    async releaseFeatures(release: string, candidates = false) {
+      const rows: z.infer<typeof plannerFeatureSchema>[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await client
+          .rpc("shiplog_list_features", { release, candidates })
+          .range(offset, offset + 499);
+        if (error) throw new Error(error.message, { cause: error });
+        const page = z.array(plannerFeatureSchema).parse(data);
+        rows.push(...page);
+        if (page.length < 500) return rows;
+      }
+    },
+    linkFeature: (release: string, feature: string, linked: boolean) =>
+      rpc("shiplog_link_feature", { release, feature, linked }),
     portal: async (workspace: string, enabled?: boolean) =>
       z
         .string()

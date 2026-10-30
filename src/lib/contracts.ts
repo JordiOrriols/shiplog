@@ -18,24 +18,10 @@ export const releaseSchema = z.object({
   status: z.enum(["draft", "qa", "released"]),
   created_at: z.string(),
 });
-export const CHANGE_CATEGORIES = [
-  "feature",
-  "improvement",
-  "bug_fix",
-  "technical",
-  "breaking",
-  "security",
-] as const;
-export const changeInputSchema = z.object({
-  category: z.enum(CHANGE_CATEGORIES),
-  title: z.string().trim().min(1).max(160),
-  description: z.string().max(10000),
-  is_public: z.boolean(),
-});
-export const changeSchema = changeInputSchema.extend({
+export const plannerFeatureSchema = z.object({
   id: z.string().uuid(),
-  release_id: z.string().uuid(),
-  created_at: z.string(),
+  name: z.string(),
+  linked: z.boolean(),
 });
 export const publicReleaseSchema = releaseSchema
   .pick({
@@ -49,13 +35,7 @@ export const publicReleaseSchema = releaseSchema
     created_at: true,
   })
   .extend({
-    changes: z.array(
-      changeInputSchema.pick({
-        category: true,
-        title: true,
-        description: true,
-      }),
-    ),
+    features: z.array(z.object({ name: z.string() })),
   });
 export const publicCatalogSchema = z.object({
   name: z.string(),
@@ -65,7 +45,6 @@ export const publicCatalogSchema = z.object({
 export type Application = z.infer<typeof applicationSchema>;
 export type Release = z.infer<typeof releaseSchema>;
 export type PublicCatalog = z.infer<typeof publicCatalogSchema>;
-export type ReleaseChange = z.infer<typeof changeSchema>;
 export type PublicRelease = z.infer<typeof publicReleaseSchema>;
 export const checklistDefinitionSchema = z.object({
   category: z.string().trim().min(1).max(80),

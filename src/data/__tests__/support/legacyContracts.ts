@@ -1,5 +1,24 @@
 import { z } from "zod";
-import { releaseSchema as currentReleaseSchema } from "@/lib/contracts";
+import {
+  releaseSchema as currentReleaseSchema,
+  publicReleaseSchema as currentPublicReleaseSchema,
+} from "@/lib/contracts";
+
+export const releaseOnlyCatalogSchema = z.object({
+  name: z.string(),
+  applications: z.array(z.object({ id: z.string().uuid(), name: z.string() })),
+  releases: z.array(
+    currentPublicReleaseSchema.omit({ features: true }).extend({
+      changes: z.array(
+        z.object({
+          category: z.string(),
+          title: z.string(),
+          description: z.string(),
+        }),
+      ),
+    }),
+  ),
+});
 
 // Historical migration tests exercise the schema before publication was retired.
 export const releaseSchema = currentReleaseSchema.extend({
