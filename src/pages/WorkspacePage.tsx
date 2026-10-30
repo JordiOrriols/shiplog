@@ -31,6 +31,10 @@ export default function WorkspacePage({
   const [filter, setFilter] = useState("");
   const [publication, setPublication] = useState<Release | null>(null);
   const [detail, setDetail] = useState<Release | null>(null);
+  const [publicDraft, setPublicDraft] = useState<{
+    id: string;
+    enabled: boolean;
+  } | null>(null);
   const canEdit =
     workspace?.access_level === "owner" || workspace?.access_level === "editor";
   if (query.isPending)
@@ -131,13 +135,22 @@ export default function WorkspacePage({
                 <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    checked={app.public_enabled}
+                    checked={
+                      publicDraft?.id === app.id
+                        ? publicDraft.enabled
+                        : app.public_enabled
+                    }
                     disabled={action.busy}
                     onChange={(event) => {
                       const enabled = event.target.checked;
+                      setPublicDraft({ id: app.id, enabled });
                       void action.run(async () => {
-                        await repository.setPublic(app.id, enabled);
-                        await query.refresh();
+                        try {
+                          await repository.setPublic(app.id, enabled);
+                          await query.refresh();
+                        } finally {
+                          setPublicDraft(null);
+                        }
                       });
                     }}
                   />
@@ -173,6 +186,7 @@ export default function WorkspacePage({
             <label className="flex items-center gap-3 text-sm">
               {t("portal.filter")}
               <select
+                aria-label={t("portal.filter")}
                 className="field max-w-xs"
                 value={filter}
                 onChange={(event) => setFilter(event.target.value)}

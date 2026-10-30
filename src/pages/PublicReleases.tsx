@@ -75,6 +75,7 @@ export default function PublicReleases() {
               <label className="flex flex-wrap items-center gap-3 text-sm">
                 {t("portal.filter")}
                 <select
+                  aria-label={t("portal.filter")}
                   className="field max-w-xs"
                   value={filter}
                   onChange={(event) => {
