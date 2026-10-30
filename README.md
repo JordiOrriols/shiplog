@@ -106,6 +106,12 @@ allow-list. Shared session and callback routing come from UI.
 
 ## Verification
 
+Build and deployment run in separate jobs. Builds have only read permissions;
+`UI_READ_TOKEN` is available only to dependency installation. Only the deployment
+job receives Pages/OIDC permissions, on `main` or `master` and subject to the
+`github-pages` environment's branch policy. Checkout credentials are not persisted.
+Actions are pinned to commit SHAs and receive weekly Dependabot update PRs.
+
 ```sh
 npm run compile
 npm run lint
