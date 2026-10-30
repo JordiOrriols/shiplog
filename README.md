@@ -54,6 +54,8 @@ the `.nvmrc` version used by CI and deployment.
 
 Shiplog uses UI `^0.3.20` from GitHub Packages, including the shared Shiplog
 project registration, workspace sharing and authentication redirects.
+Header, project-menu and login/welcome icons reuse the shared orange Shiplog
+branding through `projectId` and `ProjectIcon`; no local palette is maintained.
 The committed lockfile contains registry packages, not local links or archives.
 
 ```sh
@@ -159,6 +161,12 @@ Register `https://shiplog.jordiorriols.cat/?auth_app=shiplog` and
 allow-list. Shared session and callback routing come from UI.
 
 ## Verification
+
+Build and deployment run in separate jobs. Builds have only read permissions;
+`UI_READ_TOKEN` is available only to dependency installation. Only the deployment
+job receives Pages/OIDC permissions, on `main` or `master` and subject to the
+`github-pages` environment's branch policy. Checkout credentials are not persisted.
+Actions are pinned to commit SHAs and receive weekly Dependabot update PRs.
 
 ```sh
 npm run compile
