@@ -36,8 +36,9 @@ Release history and communication on the same Supabase project and shared
   aggregate readiness gates, deployment records, publication actions or preview tab.
 - **One revocable public catalog URL per workspace**, listing all
   applications with a URL-backed application filter. Individual release URLs
-  remain inside that same catalog. Open workspace **Share** to configure people
-  first, then the public link. Owners alone manage people and enable/revoke links;
+  remain inside that same catalog. Open workspace **Share**: **Emails** is the
+  default tab for people access and **Link** contains public catalog controls.
+  Owners alone manage people and enable/revoke links;
   Shiplog editors/viewers see current-app access and can copy/open existing links.
   The former `/portal` management route redirects to the overview.
 - Database-enforced authorization, unique application versions and append-only
@@ -52,7 +53,7 @@ are intentionally deferred.
 Use Node.js 26 LTS with npm 11.20.0. Run `nvm install && nvm use` to select
 the `.nvmrc` version used by CI and deployment.
 
-Shiplog uses UI `^0.3.20` from GitHub Packages, including the shared Shiplog
+Shiplog uses UI `^0.3.21` from GitHub Packages, including the shared Shiplog
 project registration, workspace sharing and authentication redirects.
 Header, project-menu and login/welcome icons reuse the shared orange Shiplog
 branding through `projectId` and `ProjectIcon`; no local palette is maintained.
