@@ -1,6 +1,6 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,7 +9,6 @@ import WorkspacePage from "./WorkspacePage";
 
 const state = vi.hoisted(() => ({
   access: "owner",
-  setPublic: vi.fn(),
   refresh: vi.fn(),
   saveApplication: vi.fn(),
   teams: vi.fn(),
@@ -32,7 +31,6 @@ vi.mock("@/data/WorkspaceProvider", () => ({
 vi.mock("@/data/DataProvider", () => ({
   useData: () => ({
     repository: {
-      setPublic: state.setPublic,
       saveApplication: state.saveApplication,
       teams: state.teams,
     },
@@ -49,7 +47,6 @@ vi.mock("@/data/useWorkspaceData", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   state.access = "owner";
-  state.applications[0]!.public_enabled = false;
   state.teams.mockResolvedValue([]);
 });
 
@@ -87,32 +84,19 @@ describe("workspace application controls", () => {
       ),
     );
   });
-  it("keeps a catalog checkbox checked while the server saves, and reports rollback failures", async () => {
-    let reject!: (error: Error) => void;
-    state.setPublic.mockImplementation(
-      () =>
-        new Promise((_resolve, rejectPromise) => {
-          reject = rejectPromise;
-        }),
-    );
+  it("includes applications automatically without visibility controls or private labels", () => {
     render(
       <MemoryRouter>
         <WorkspacePage section="applications" />
       </MemoryRouter>,
     );
-    const checkbox = screen.getByRole("checkbox", {
-      name: "Include in public catalog",
-    });
-    await userEvent.click(checkbox);
-    expect(checkbox).toBeChecked();
-    expect(checkbox).toBeDisabled();
-    expect(state.setPublic).toHaveBeenCalledWith("app", true);
-    await act(async () => reject(new Error("Cannot change visibility")));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Cannot change visibility",
-    );
-    expect(checkbox).not.toBeChecked();
-    expect(checkbox).toBeEnabled();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Not included in public catalog"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/includes every application and release/),
+    ).toBeVisible();
   });
 
   it("keeps all mutation controls out of the viewer's page", () => {

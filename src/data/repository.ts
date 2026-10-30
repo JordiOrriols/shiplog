@@ -114,8 +114,6 @@ export function createShiplogRepository(client: SupabaseClient) {
         }),
       );
     },
-    setPublic: (application: string, enabled: boolean) =>
-      rpc("shiplog_set_application_public", { application, enabled }),
     createRelease: async (input: unknown) => {
       const parsed = releaseInputSchema.parse(input);
       return releaseSchema.parse(

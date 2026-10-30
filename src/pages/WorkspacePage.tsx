@@ -29,7 +29,6 @@ export default function WorkspacePage({
   const { workspace } = useWorkspace();
   const { repository } = useData();
   const query = useWorkspaceData();
-  const action = useAsyncAction();
   const [open, setOpen] = useState(false);
   const [editingApplication, setEditingApplication] =
     useState<Application | null>(null);
@@ -37,10 +36,6 @@ export default function WorkspacePage({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [templateApplication, setTemplateApplication] =
     useState<Application | null>(null);
-  const [publicDraft, setPublicDraft] = useState<{
-    id: string;
-    enabled: boolean;
-  } | null>(null);
   const canEdit =
     workspace?.access_level === "owner" || workspace?.access_level === "editor";
   if (query.isPending)
@@ -95,26 +90,12 @@ export default function WorkspacePage({
       {!canEdit && (
         <p className="text-sm text-muted-foreground">{t("common.readOnly")}</p>
       )}
-      {action.error && (
-        <p role="alert" className="text-destructive">
-          {action.error}
-        </p>
-      )}
       {section === "overview" && (
         <div className="grid gap-3 sm:grid-cols-3">
           {[
             ["releases.applicationCount", applications.length, "/applications"],
             ["releases.count", releases.length, "/releases"],
-            [
-              "releases.publicCount",
-              releases.filter((release) =>
-                applications.some(
-                  (app) =>
-                    app.id === release.application_id && app.public_enabled,
-                ),
-              ).length,
-              "/portal",
-            ],
+            ["releases.publicCount", releases.length, "/portal"],
           ].map(([label, count, path]) => (
             <Link
               className="panel hover:border-brand"
@@ -161,40 +142,6 @@ export default function WorkspacePage({
                 >
                   {t("readiness.template")}
                 </Button>
-              )}
-              {canEdit ? (
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={
-                      publicDraft?.id === app.id
-                        ? publicDraft.enabled
-                        : app.public_enabled
-                    }
-                    disabled={action.busy}
-                    onChange={(event) => {
-                      const enabled = event.target.checked;
-                      setPublicDraft({ id: app.id, enabled });
-                      void action.run(async () => {
-                        try {
-                          await repository.setPublic(app.id, enabled);
-                          await query.refresh();
-                        } finally {
-                          setPublicDraft(null);
-                        }
-                      });
-                    }}
-                  />
-                  {t("applications.public")}
-                </label>
-              ) : (
-                <p className="text-sm">
-                  {t(
-                    app.public_enabled
-                      ? "applications.public"
-                      : "applications.private",
-                  )}
-                </p>
               )}
             </article>
           ))}

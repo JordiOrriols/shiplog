@@ -10,7 +10,8 @@ Release history and communication on the same Supabase project and shared
 - Existing workspace creation, switching and per-app owner/editor/viewer sharing.
 - Editable applications with an optional link to an existing workspace team.
   A team may manage multiple applications; identifiers and platforms are removed.
-  Application catalog visibility is private by default.
+  Every application is automatically included when the workspace public catalog
+  is enabled; there is no per-application visibility checkbox.
 - Manual semantic-version releases with public notes. Major/minor/patch is
   inferred against the highest existing SemVer in the application, not insertion
   order (initial baseline `0.0.0`). Prerelease precedence and build metadata follow
@@ -18,8 +19,8 @@ Release history and communication on the same Supabase project and shared
 - Version/title and categorized changes are editable in Draft status. Changes
   remain private by default unless explicitly marked public.
 - Owners/editors can edit public notes in every status. All releases, including
-  Draft and QA, appear automatically when their application is included and the
-  workspace catalog is enabled. Edits appear immediately and are audited.
+  Draft and QA, appear automatically when the workspace catalog is enabled.
+  Edits appear immediately and are audited.
 - Forms use the shared modal footer: black primary Save and secondary Close,
   rather than submission buttons inside the content. Application tags reuse
   Planner's estimation-card styling.
@@ -33,7 +34,7 @@ Release history and communication on the same Supabase project and shared
   and **Released**. QA checks and approvals do not automatically change status;
   the status control appears only on the first release-details tab. There are no
   aggregate readiness gates, deployment records, publication actions or preview tab.
-- **One revocable public catalog URL per workspace**, listing all included
+- **One revocable public catalog URL per workspace**, listing all
   applications with a URL-backed application filter. Individual release URLs
   remain inside that same catalog.
 - Database-enforced authorization, unique application versions and append-only
@@ -82,7 +83,7 @@ The Shiplog migration extends workspace app validation and adds:
 
 Internal tables have RLS and authenticated read grants. Mutations go through
 transactional, explicitly authorized RPCs. Anonymous users cannot query internal
-tables. `shiplog_public_catalog(token)` returns only enabled application names
+tables. `shiplog_public_catalog(token)` returns all workspace application names
 and allow-listed release fields for every status. Catalog tokens are opaque and revocable; they are
 shareable links, not an account permission.
 
@@ -127,6 +128,15 @@ and includes Draft, QA and Released automatically. Draft content editing depends
 only on current status, so explicitly returning a release to Draft allows editing.
 This destructive migration has been tested and applied to shared Supabase with
 explicit approval.
+
+`20261030233000_shiplog_all_applications_catalog.sql` removes per-application
+inclusion from the public projection and retires the visibility RPC. Existing
+applications (even previously excluded ones) and future applications appear
+automatically, but only through an enabled workspace catalog token. Internal
+changes, QA and member data remain excluded. The obsolete `public_enabled` column,
+visibility audit events and visibility fields in application audit snapshots are
+permanently removed. This migration has been tested and applied to shared
+Supabase with explicit approval.
 
 ```sh
 npx supabase link --project-ref <shared-project-ref>

@@ -76,7 +76,7 @@ describe("Shiplog transport", () => {
     fetch.mockResolvedValueOnce(
       response({ message: "Shiplog edit access required" }, 403),
     );
-    await expect(repository.setPublic("application", true)).rejects.toThrow(
+    await expect(repository.setReleaseStatus("release", "qa")).rejects.toThrow(
       "Shiplog edit access required",
     );
     fetch.mockResolvedValueOnce(response({ name: "Missing releases" }));
