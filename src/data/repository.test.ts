@@ -24,6 +24,32 @@ function setup() {
   return { fetch, response, repository: createShiplogRepository(client) };
 }
 describe("Shiplog transport", () => {
+  it("pages only the authorized current-app directory and surfaces invalid data or access failures", async () => {
+    const { fetch, response, repository } = setup();
+    const share = {
+      user_id: "11111111-1111-4111-8111-111111111111",
+      email: "reader@example.com",
+      app: "shiplog",
+      access_level: "viewer",
+    };
+    fetch
+      .mockResolvedValueOnce(response(Array(500).fill(share)))
+      .mockResolvedValueOnce(response([share]));
+    expect(await repository.sharingAccess("workspace")).toHaveLength(501);
+    expect(String(fetch.mock.calls[1]?.[0])).toContain("offset=500");
+    expect(JSON.parse(String(fetch.mock.calls[0]?.[1]?.body))).toEqual({
+      workspace: "workspace",
+      app_name: "shiplog",
+    });
+    fetch.mockResolvedValueOnce(
+      response({ message: "Workspace sharing access required" }, 403),
+    );
+    await expect(repository.sharingAccess("workspace")).rejects.toThrow(
+      "Workspace sharing access required",
+    );
+    fetch.mockResolvedValueOnce(response([{ ...share, app: "planner" }]));
+    await expect(repository.sharingAccess("workspace")).rejects.toThrow();
+  });
   it("rejects malformed releases before any request", async () => {
     const { fetch, repository } = setup();
     await expect(
