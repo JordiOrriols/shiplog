@@ -4,12 +4,12 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/i18n";
-import { releaseSchema } from "@/lib/contracts";
+import { releaseSchema, type Release } from "@/lib/contracts";
 import ReleaseDetails from "./ReleaseDetails";
 
 const state = vi.hoisted(() => ({
   listChanges: vi.fn(),
-  previewRelease: vi.fn(),
+  readiness: vi.fn(),
   updateDraft: vi.fn(),
   saveChange: vi.fn(),
   updatePublicNotes: vi.fn(),
@@ -30,19 +30,16 @@ const release = releaseSchema.parse({
   internal_notes: "SECRET private notes",
   public_notes: "Public notes",
   status: "draft",
-  published_at: null,
-  first_published_at: null,
-  first_deployed_at: null,
   created_at: "2026-10-30T12:00:00Z",
 });
-function show(canEdit = true, firstPublished: string | null = null) {
+function show(canEdit = true, status: Release["status"] = "draft") {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={client}>
       <ReleaseDetails
-        release={{ ...release, first_published_at: firstPublished }}
+        release={{ ...release, status }}
         canEdit={canEdit}
         onClose={vi.fn()}
       />
@@ -52,6 +49,7 @@ function show(canEdit = true, firstPublished: string | null = null) {
 beforeEach(() => {
   vi.resetAllMocks();
   state.listChanges.mockResolvedValue([]);
+  state.readiness.mockResolvedValue({ items: [] });
 });
 describe("release content controls", () => {
   it("prevents editing notes during a save so server refresh cannot erase newer input", async () => {
@@ -62,20 +60,20 @@ describe("release content controls", () => {
           resolve = done;
         }),
     );
-    show(true, "2026-10-30T12:00:00Z");
+    show(true, "released");
     const notes = screen.getByLabelText("Public release notes", {
       exact: true,
     });
     await userEvent.click(
-      screen.getByRole("button", { name: "Save release notes", exact: true }),
+      screen.getByRole("button", { name: "Save", exact: true }),
     );
     expect(notes).toBeDisabled();
     await act(async () => resolve());
     await waitFor(() => expect(notes).toBeEnabled());
   });
-  it("allows published notes to be edited directly without internal notes or type selectors", async () => {
+  it("allows released notes to be edited directly without internal notes or type selectors", async () => {
     state.updatePublicNotes.mockRejectedValue(new Error("Cannot save notes"));
-    show(true, "2026-10-30T12:00:00Z");
+    show(true, "released");
     expect(
       screen.queryByLabelText("Internal notes", { exact: true }),
     ).not.toBeInTheDocument();
@@ -90,7 +88,7 @@ describe("release content controls", () => {
       "Revised public story",
     );
     await userEvent.click(
-      screen.getByRole("button", { name: "Save release notes", exact: true }),
+      screen.getByRole("button", { name: "Save", exact: true }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Cannot save notes",
@@ -138,6 +136,10 @@ describe("release content controls", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Add change", exact: true }),
     );
+    expect(screen.getByLabelText("Release status")).toBeDisabled();
+    const save = screen.getByRole("button", { name: "Save", exact: true });
+    expect(save).toHaveAttribute("form", "release-change-form");
+    expect(save.closest("form")).toBeNull();
     expect(
       screen.getByRole("checkbox", { name: "Public change", exact: true }),
     ).not.toBeChecked();
@@ -165,46 +167,38 @@ describe("release content controls", () => {
       ).not.toBeInTheDocument(),
     );
   });
-  it("uses only the server preview and reports preview failures", async () => {
-    state.previewRelease
-      .mockRejectedValueOnce(new Error("Preview unavailable"))
-      .mockResolvedValueOnce({
-        ...release,
-        changes: [
-          {
-            category: "bug_fix",
-            title: "Fixed calendar",
-            description: "Dates align",
-          },
-        ],
-      });
+  it("keeps status only on the first tab and uses a footer save associated with its form", async () => {
     show();
+    const save = screen.getByRole("button", { name: "Save", exact: true });
+    expect(save.closest("form")).toBeNull();
+    expect(save).toHaveAttribute("form", "release-notes-form");
+    expect(screen.getByLabelText("Release status")).toBeVisible();
     await userEvent.click(
-      screen.getByRole("button", { name: "Public preview", exact: true }),
+      screen.getByRole("button", { name: "QA", exact: true }),
     );
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Preview unavailable",
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Retry", exact: true }),
-    );
+    expect(screen.queryByLabelText("Release status")).not.toBeInTheDocument();
     expect(
-      await screen.findByText("Fixed calendar", { exact: true }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("heading", { name: "Bug fixes", exact: true }),
-    ).toBeVisible();
-    expect(
-      screen.queryByText("SECRET private notes", { exact: true }),
+      screen.queryByRole("button", { name: "Save", exact: true }),
     ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Edit draft", exact: true }),
+    );
+    expect(screen.queryByLabelText("Release status")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Save", exact: true }),
+    ).toHaveAttribute("form", "release-edit-form");
+    for (const name of ["Approvals", "Deployments", "Public preview"])
+      expect(
+        screen.queryByRole("button", { name, exact: true }),
+      ).not.toBeInTheDocument();
   });
   it.each([
-    [false, null],
-    [true, "2026-10-30T12:00:00Z"],
+    [false, "draft"],
+    [true, "released"],
   ] as const)(
-    "hides mutations for a viewer or previously published release (%s, %s)",
-    async (canEdit, published) => {
-      show(canEdit, published);
+    "hides draft mutations for a viewer or non-draft release (%s, %s)",
+    async (canEdit, status) => {
+      show(canEdit, status);
       expect(await screen.findByText("No changes yet.")).toBeVisible();
       expect(
         screen.queryByRole("button", { name: "Edit draft", exact: true }),
@@ -213,8 +207,8 @@ describe("release content controls", () => {
         screen.queryByRole("button", { name: "Add change", exact: true }),
       ).not.toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Public preview", exact: true }),
-      ).toBeVisible();
+        screen.queryByRole("button", { name: "Public preview", exact: true }),
+      ).not.toBeInTheDocument();
     },
   );
 });

@@ -5,7 +5,10 @@ import {
   createMigratedDatabase,
   applyMigrations,
 } from "./support/migratedDatabase";
-import { publicReleaseSchema, publicCatalogSchema } from "@/lib/contracts";
+import {
+  publicReleaseSchema,
+  publicCatalogSchema,
+} from "./support/legacyContracts";
 
 const owner = "11111111-1111-4111-8111-111111111111";
 const editor = "22222222-2222-4222-8222-222222222222";
@@ -52,7 +55,9 @@ async function saveChange(payload: unknown = change, id: string | null = null) {
   );
 }
 beforeAll(async () => {
-  db = await createMigratedDatabase(accounts);
+  db = await createMigratedDatabase(accounts, {
+    until: "20261030232000_shiplog_release_only.sql",
+  });
   await login(owner);
   workspace = await value(
     "select id as value from public.create_workspace('Draft tests')",

@@ -10,54 +10,36 @@ Release history and communication on the same Supabase project and shared
 - Existing workspace creation, switching and per-app owner/editor/viewer sharing.
 - Editable applications with an optional link to an existing workspace team.
   A team may manage multiple applications; identifiers and platforms are removed.
-  Catalog visibility is private by default, with initial staging and production
-  environment records.
+  Application catalog visibility is private by default.
 - Manual semantic-version releases with public notes. Major/minor/patch is
   inferred against the highest existing SemVer in the application, not insertion
   order (initial baseline `0.0.0`). Prerelease precedence and build metadata follow
   SemVer. Version edits exclude the edited release from the comparison.
-- Editable, never-published drafts and categorized changes, private by default.
-- Authenticated public previews using the same server projection and rendering
-  as the public catalog; only explicitly public changes are included.
-- Version/title and included changes are editable only on unpublished,
-  undeployed drafts. First publication or successful deployment permanently locks
-  those fields, even after unpublishing. Owners/editors can edit public notes at
-  any time from release details, including on published/deployed releases;
-  published changes are immediately reflected in the public catalog.
-  Changes record private before/after audit history.
-- Explicit publication/unpublication, independent of lifecycle and deployment.
+- Version/title and categorized changes are editable in Draft status. Changes
+  remain private by default unless explicitly marked public.
+- Owners/editors can edit public notes in every status. All releases, including
+  Draft and QA, appear automatically when their application is included and the
+  workspace catalog is enabled. Edits appear immediately and are audited.
+- Forms use the shared modal footer: black primary Save and secondary Close,
+  rather than submission buttons inside the content. Application tags reuse
+  Planner's estimation-card styling.
 - Owner-managed application checklist templates, snapshotted for each new release.
   Later template edits never alter existing release checklists.
 - A simple **QA** tab shows passed checks and progress, with completion
   actor/timestamps. Owners/editors can check or uncheck items in any lifecycle.
-- A separate **Approvals** tab lists current workspace members and each person's
-  approved (green check), disapproved or pending decision. All Shiplog members,
-  including viewers, can approve/disapprove only for themselves.
+- Each release card has an approval dropdown and member decision badges. All
+  Shiplog members, including viewers, can approve/disapprove only for themselves.
 - Owners/editors manually choose the three release-list tags: **Draft**, **QA**
   and **Released**. QA checks and approvals do not automatically change status;
-  there are no aggregate readiness gates, override forms or reopening actions.
-- Manual, append-only deployment outcomes (succeeded, failed, cancelled, rollback),
-  with start/completion times, recorder, source, build reference, report link and
-  private notes/errors. Owners and editors may record outcomes for all environments.
-- Reported current versions per environment are derived from successful outcomes
-  and rollbacks ordered by completion time, then recording sequence for ties.
-  Failed/cancelled or older backfilled outcomes do not replace newer successes.
-- Explicit rollbacks restore a previously deployed version in the same environment.
-  The source must match the reported version at that point in history; a reason
-  is required. Rollback records do not erase prior deployments.
-- Production readiness produces saved warnings, not recording restrictions:
-  no current-member approval, any current-member disapproval, or incomplete
-  mandatory checks. Pending members alone do not negate another member's approval.
-  Removed members no longer affect warnings. Successful records lock version/
-  change content without changing lifecycle, individual decisions or publication.
+  the status control appears only on the first release-details tab. There are no
+  aggregate readiness gates, deployment records, publication actions or preview tab.
 - **One revocable public catalog URL per workspace**, listing all included
   applications with a URL-backed application filter. Individual release URLs
   remain inside that same catalog.
 - Database-enforced authorization, unique application versions and append-only
   audit events. Public responses are explicitly serialized on the server.
 
-Creating or publishing release notes does not claim that a release is deployed or
-approved. Approval does not deploy or publish anything. Releases are created
+Release status and individual approval decisions are independent. Releases are created
 manually; API keys, API-based creation, automated ingestion and E2E result tracking
 are intentionally deferred.
 
@@ -94,14 +76,14 @@ manually against an existing project.
 
 The Shiplog migration extends workspace app validation and adds:
 
-- `shiplog_applications`, `shiplog_environments`
+- `shiplog_applications`
 - `shiplog_releases`, `shiplog_release_changes`
 - `shiplog_audit_events`, `shiplog_portals`
 
 Internal tables have RLS and authenticated read grants. Mutations go through
 transactional, explicitly authorized RPCs. Anonymous users cannot query internal
 tables. `shiplog_public_catalog(token)` returns only enabled application names
-and published release fields. Catalog tokens are opaque and revocable; they are
+and allow-listed release fields for every status. Catalog tokens are opaque and revocable; they are
 shareable links, not an account permission.
 
 `20261030200000_shiplog_draft_content.sql` adds the draft/change RPCs and the
@@ -136,6 +118,16 @@ It explicitly casts Supabase's `varchar` account email to the member RPC's `text
 return type. Database test fixtures use the same `varchar(255)` type as Supabase
 to cover this integration detail.
 
+`20261030232000_shiplog_release_only.sql` retires deployment/environment tables,
+their recording RPC/view and audit records, publication timestamps/actions and
+the authenticated preview RPC. It strips retired timestamps from release audit
+snapshots, while preserving releases, QA snapshots, member decisions and
+application privacy. The public projection now includes status and creation date,
+and includes Draft, QA and Released automatically. Draft content editing depends
+only on current status, so explicitly returning a release to Draft allows editing.
+This destructive migration has been tested and applied to shared Supabase with
+explicit approval.
+
 ```sh
 npx supabase link --project-ref <shared-project-ref>
 npx supabase db push --linked --dry-run
@@ -159,24 +151,19 @@ npm run build
 
 Database tests use PGlite with the complete shared migration chain and Supabase
 auth-role stand-ins. They test workspace isolation, editor/viewer permissions,
-SemVer constraints, publication, catalog projection and revocation.
-Draft tests cover change CRUD, permission checks, historical locks and migration
-backfill. The full-chain simplification suite verifies destructive cleanup,
-editable application teams, automatic version inference, published note updates,
-manual status and member decisions. Browser tests compare draft preview and
-anonymous catalog payloads to verify that private changes and QA/member/team
-metadata never leak.
+SemVer constraints, default release visibility, catalog projection and revocation.
+Historical foundation/draft/readiness/simplification tests stop before the
+migrations that retire their workflows. The release-only suite applies the full
+chain to populated legacy data and verifies destructive cleanup, application
+creation without environments, all three public statuses, status-only draft
+editing, note updates, member decisions and permission/privacy boundaries.
 Browser tests live in the separate `e2e-tests` project under `tests/shiplog`.
-Historical readiness migration tests explicitly stop before simplification;
-current foundation, draft, checklist, approval and deployment behavior is tested
-against the complete migration chain. `manual-readiness.spec.ts` uses live Supabase
+`manual-readiness.spec.ts` uses live Supabase
 to verify application editing/team reuse, QA completion, individual decisions,
-manual status tags, published note updates and public-data exclusion.
-Role restrictions also have database and component coverage.
-`deployments.spec.ts` verifies live outcome recording, completion-time ordering,
-environment isolation, rollback validation, content locks and private metadata
-exclusion. Database tests additionally enforce viewer/outsider denial and the
-append-only ledger; component tests cover save failures and read-only controls.
+manual status tags, note updates and public-data exclusion. `releases.spec.ts`
+covers footer form submission, neutral primary styling, application filters,
+draft change CRUD, public statuses, safe serialization, catalog revocation and
+mobile modal actions. Role restrictions also have database and component coverage.
 
 GitHub Actions follows the existing apps: pushes to `main` or `master` compile,
 lint, format-check, test and build before GitHub Pages deployment. Configure

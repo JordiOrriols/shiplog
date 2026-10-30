@@ -2,7 +2,7 @@
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import { createMigratedDatabase } from "./support/migratedDatabase";
-import { publicCatalogSchema } from "@/lib/contracts";
+import { publicCatalogSchema } from "./support/legacyContracts";
 
 const owner = "11111111-1111-4111-8111-111111111111";
 const editor = "22222222-2222-4222-8222-222222222222";
@@ -40,12 +40,15 @@ async function createRelease(application = app, version = "1.0.0") {
   );
 }
 beforeAll(async () => {
-  db = await createMigratedDatabase([
-    { id: owner, email: "owner@example.com" },
-    { id: editor, email: "editor@example.com" },
-    { id: viewer, email: "viewer@example.com" },
-    { id: outsider, email: "outsider@example.com" },
-  ]);
+  db = await createMigratedDatabase(
+    [
+      { id: owner, email: "owner@example.com" },
+      { id: editor, email: "editor@example.com" },
+      { id: viewer, email: "viewer@example.com" },
+      { id: outsider, email: "outsider@example.com" },
+    ],
+    { until: "20261030232000_shiplog_release_only.sql" },
+  );
   await login(owner);
   workspace = await value(
     "select id as value from public.create_workspace('Shipping')",

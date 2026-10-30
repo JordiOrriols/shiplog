@@ -7,16 +7,11 @@ import {
   releaseInputSchema,
   changeSchema,
   changeInputSchema,
-  publicReleaseSchema,
   checklistTemplateSchema,
   readinessSchema,
   teamSchema,
   decisionSchema,
   applicationInputSchema,
-  environmentSchema,
-  environmentVersionSchema,
-  deploymentSchema,
-  deploymentInputSchema,
 } from "@/lib/contracts";
 
 export function createShiplogRepository(client: SupabaseClient) {
@@ -52,46 +47,6 @@ export function createShiplogRepository(client: SupabaseClient) {
       .parse(await rpc("shiplog_list_teams", { workspace }));
   }
   return {
-    deployments: async (application: string) => {
-      const [environments, versions, deployments] = await Promise.all([
-        client
-          .from("shiplog_environments")
-          .select("*")
-          .eq("application_id", application)
-          .order("name"),
-        client
-          .from("shiplog_environment_versions")
-          .select("*")
-          .eq("application_id", application),
-        list(
-          "shiplog_deployments",
-          deploymentSchema,
-          "application_id",
-          application,
-        ),
-      ]);
-      if (environments.error)
-        throw new Error(environments.error.message, {
-          cause: environments.error,
-        });
-      if (versions.error)
-        throw new Error(versions.error.message, { cause: versions.error });
-      return {
-        environments: z.array(environmentSchema).parse(environments.data),
-        versions: z.array(environmentVersionSchema).parse(versions.data),
-        deployments: deployments.sort(
-          (a, b) =>
-            Date.parse(b.completed_at) - Date.parse(a.completed_at) ||
-            b.sequence - a.sequence,
-        ),
-      };
-    },
-    recordDeployment: async (input: unknown) =>
-      deploymentSchema.parse(
-        await rpc("shiplog_record_deployment", {
-          input: deploymentInputSchema.parse(input),
-        }),
-      ),
     checklistTemplate: async (application: string) => {
       const { data, error } = await client
         .from("shiplog_checklist_templates")
@@ -167,8 +122,6 @@ export function createShiplogRepository(client: SupabaseClient) {
         await rpc("shiplog_create_release", { input: parsed }),
       );
     },
-    publishRelease: (release: string, published: boolean) =>
-      rpc("shiplog_publish_release", { release, published }),
     updateDraft: async (release: string, input: unknown) =>
       releaseSchema.parse(
         await rpc("shiplog_update_draft", {
@@ -188,10 +141,6 @@ export function createShiplogRepository(client: SupabaseClient) {
       ),
     deleteChange: (release: string, changeId: string) =>
       rpc("shiplog_delete_change", { release, change_id: changeId }),
-    previewRelease: async (release: string) =>
-      publicReleaseSchema.parse(
-        await rpc("shiplog_preview_release", { release }),
-      ),
     portal: async (workspace: string, enabled?: boolean) =>
       z
         .string()

@@ -33,7 +33,16 @@ export default function ApplicationForm({
       isOpen
       title={t(application ? "applications.edit" : "applications.new")}
       description={t("applications.description")}
-      closeLabel={t("common.cancel")}
+      closeLabel={t("common.close")}
+      footer={
+        <Button
+          type="submit"
+          form="application-form"
+          disabled={action.busy || !teams.data}
+        >
+          {t("common.save")}
+        </Button>
+      }
       onOpenChange={(open) => {
         if (!open && !action.busy) onClose();
       }}
@@ -50,6 +59,7 @@ export default function ApplicationForm({
           </div>
         ) : (
           <form
+            id="application-form"
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
@@ -104,9 +114,6 @@ export default function ApplicationForm({
                 {action.error}
               </p>
             )}
-            <Button type="submit" disabled={action.busy}>
-              {t(application ? "common.save" : "common.create")}
-            </Button>
           </form>
         )}
       </div>

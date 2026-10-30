@@ -1,6 +1,6 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/i18n";
@@ -53,32 +53,42 @@ describe("individual approvals", () => {
     show();
     expect(await screen.findByText("Approved", { exact: true })).toBeVisible();
     expect(screen.getByText("Disapproved", { exact: true })).toBeVisible();
-    expect(screen.getByText("Pending", { exact: true })).toBeVisible();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Approve", exact: true }),
+    expect(
+      within(screen.getByRole("list")).getByText("Pending", { exact: true }),
+    ).toBeVisible();
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: "Your approval" }),
+      "approved",
     );
     await waitFor(() =>
       expect(state.decideRelease).toHaveBeenCalledWith("release", true),
     );
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Disapprove", exact: true }),
+        screen.getByRole("combobox", { name: "Your approval" }),
       ).toBeEnabled(),
     );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Disapprove", exact: true }),
+    await userEvent.selectOptions(
+      screen.getByRole("combobox", { name: "Your approval" }),
+      "disapproved",
     );
     expect(state.decideRelease).toHaveBeenLastCalledWith("release", false);
   });
   it("does not show a successful vote on server failure", async () => {
     state.decideRelease.mockRejectedValue(new Error("Cannot save decision"));
     show();
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Approve", exact: true }),
+    await userEvent.selectOptions(
+      await screen.findByRole("combobox", { name: "Your approval" }),
+      "approved",
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Cannot save decision",
     );
-    expect(screen.getByText("Pending", { exact: true })).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "Your approval" })).toHaveValue(
+      "",
+    );
+    expect(
+      within(screen.getByRole("list")).getByText("Pending", { exact: true }),
+    ).toBeVisible();
   });
 });

@@ -157,7 +157,7 @@ describe("workspace application controls", () => {
       screen.queryByLabelText("Platform", { exact: true }),
     ).not.toBeInTheDocument();
     await userEvent.click(
-      screen.getByRole("button", { name: "Create", exact: true }),
+      screen.getByRole("button", { name: "Save", exact: true }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Cannot save application",
@@ -167,7 +167,7 @@ describe("workspace application controls", () => {
     );
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Create", exact: true }),
+        screen.getByRole("button", { name: "Save", exact: true }),
       ).toBeEnabled(),
     );
   });

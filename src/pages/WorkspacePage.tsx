@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import {
   AppSkeleton,
   Button,
-  ConfirmDialog,
   EmptyState,
   Label,
   Modal,
@@ -14,10 +13,10 @@ import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
 import { useWorkspace } from "@/data/WorkspaceProvider";
 import { useData } from "@/data/DataProvider";
-import { type Release, type Application } from "@/lib/contracts";
+import { type Application } from "@/lib/contracts";
 import ReleaseDetails from "@/components/ReleaseDetails";
 import ChecklistTemplate from "@/components/ChecklistTemplate";
-import ApplicationDeployments from "@/components/ApplicationDeployments";
+import ReleaseApprovals from "@/components/ReleaseApprovals";
 import ApplicationForm from "@/components/ApplicationForm";
 import { ReleaseFields, releaseFormInput } from "@/components/ReleaseFields";
 
@@ -35,11 +34,8 @@ export default function WorkspacePage({
   const [editingApplication, setEditingApplication] =
     useState<Application | null>(null);
   const [filter, setFilter] = useState("");
-  const [publication, setPublication] = useState<Release | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [templateApplication, setTemplateApplication] =
-    useState<Application | null>(null);
-  const [deploymentApplication, setDeploymentApplication] =
     useState<Application | null>(null);
   const [publicDraft, setPublicDraft] = useState<{
     id: string;
@@ -110,8 +106,13 @@ export default function WorkspacePage({
             ["releases.applicationCount", applications.length, "/applications"],
             ["releases.count", releases.length, "/releases"],
             [
-              "releases.publishedCount",
-              releases.filter((release) => release.published_at).length,
+              "releases.publicCount",
+              releases.filter((release) =>
+                applications.some(
+                  (app) =>
+                    app.id === release.application_id && app.public_enabled,
+                ),
+              ).length,
               "/portal",
             ],
           ].map(([label, count, path]) => (
@@ -152,13 +153,6 @@ export default function WorkspacePage({
                 {query.data.teams.find((team) => team.id === app.team_id)
                   ?.name ?? t("applications.noTeam")}
               </p>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setDeploymentApplication(app)}
-              >
-                {t("deployments.title")}
-              </Button>
               {workspace.access_level === "owner" && (
                 <Button
                   size="sm"
@@ -242,15 +236,15 @@ export default function WorkspacePage({
               <article className="panel" key={release.id}>
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      {names.get(release.application_id)}
-                    </p>
                     <button
                       type="button"
-                      className="text-left text-lg font-semibold hover:underline"
+                      className="flex flex-wrap items-center gap-2 text-left text-lg font-semibold hover:underline"
                       onClick={() => setDetailId(release.id)}
                     >
-                      <span className="mr-3 font-mono text-brand">
+                      <span className="shrink-0 rounded-md bg-brand/10 px-2 py-0.5 text-[11px] font-medium tracking-normal text-brand">
+                        {names.get(release.application_id)}
+                      </span>
+                      <span className="font-mono text-brand">
                         {release.version}
                       </span>
                       {release.title}
@@ -265,28 +259,8 @@ export default function WorkspacePage({
                       {date(release.created_at)}
                     </p>
                   </div>
-                  {canEdit && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={action.busy}
-                      onClick={() => setPublication(release)}
-                    >
-                      {t(
-                        release.published_at
-                          ? "releases.unpublish"
-                          : "releases.publish",
-                      )}
-                    </Button>
-                  )}
+                  <ReleaseApprovals releaseId={release.id} />
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {t(
-                    release.published_at
-                      ? "releases.published"
-                      : "releases.draft",
-                  )}
-                </p>
               </article>
             ),
           )}
@@ -329,55 +303,6 @@ export default function WorkspacePage({
           onClose={() => setTemplateApplication(null)}
         />
       )}
-      {deploymentApplication && (
-        <Modal
-          isOpen
-          title={t("deployments.applicationTitle", {
-            name: deploymentApplication.name,
-          })}
-          description={t("deployments.description")}
-          closeLabel={t("common.close")}
-          onOpenChange={(open) => {
-            if (!open) setDeploymentApplication(null);
-          }}
-        >
-          <div className="max-h-[calc(100dvh-16rem)] overflow-y-auto">
-            <ApplicationDeployments
-              applicationId={deploymentApplication.id}
-              canEdit={canEdit}
-            />
-          </div>
-        </Modal>
-      )}
-      <ConfirmDialog
-        isOpen={!!publication}
-        title={t(
-          publication?.published_at ? "releases.unpublish" : "releases.publish",
-        )}
-        description={t(
-          publication?.published_at
-            ? "releases.confirmUnpublish"
-            : "releases.publishDescription",
-        )}
-        confirmLabel={t(
-          publication?.published_at ? "releases.unpublish" : "releases.publish",
-        )}
-        cancelLabel={t("common.cancel")}
-        onCancel={() => {
-          if (!action.busy) setPublication(null);
-        }}
-        onConfirm={() => {
-          if (!publication || action.busy) return;
-          void action.run(async () => {
-            await repository.publishRelease(
-              publication.id,
-              !publication.published_at,
-            );
-            await query.refresh();
-            setPublication(null);
-          });
-        }}
-      />
     </div>
   );
 }
@@ -397,9 +322,15 @@ function CreateForm({ onClose }: { onClose: () => void }) {
       onOpenChange={(value) => {
         if (!value && !action.busy) onClose();
       }}
-      closeLabel={t("common.cancel")}
+      closeLabel={t("common.close")}
+      footer={
+        <Button type="submit" form="release-create-form" disabled={action.busy}>
+          {t("common.save")}
+        </Button>
+      }
     >
       <form
+        id="release-create-form"
         className="space-y-4"
         onSubmit={(event) => {
           event.preventDefault();
@@ -433,9 +364,6 @@ function CreateForm({ onClose }: { onClose: () => void }) {
             {action.error}
           </p>
         )}
-        <Button type="submit" disabled={action.busy}>
-          {t("common.create")}
-        </Button>
       </form>
     </Modal>
   );
