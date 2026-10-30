@@ -25,6 +25,7 @@ import {
 } from "./ReleaseFields";
 import PublicReleaseContent from "./PublicReleaseContent";
 import ReleaseReadiness from "./ReleaseReadiness";
+import ApplicationDeployments from "./ApplicationDeployments";
 
 export default function ReleaseDetails({
   release,
@@ -41,7 +42,7 @@ export default function ReleaseDetails({
   const client = useQueryClient();
   const action = useAsyncAction();
   const [mode, setMode] = useState<
-    "details" | "edit" | "preview" | "readiness"
+    "details" | "edit" | "preview" | "readiness" | "deployments"
   >("details");
   const [editingChange, setEditingChange] = useState<
     ReleaseChange | "new" | null
@@ -119,6 +120,15 @@ export default function ReleaseDetails({
           </Button>
           <Button
             size="sm"
+            variant={mode === "deployments" ? "secondary" : "ghost"}
+            aria-pressed={mode === "deployments"}
+            disabled={action.busy}
+            onClick={() => setMode("deployments")}
+          >
+            {t("deployments.title")}
+          </Button>
+          <Button
+            size="sm"
             variant={mode === "preview" ? "secondary" : "ghost"}
             aria-pressed={mode === "preview"}
             disabled={action.busy}
@@ -137,7 +147,13 @@ export default function ReleaseDetails({
             {action.error}
           </p>
         )}
-        {mode === "readiness" ? (
+        {mode === "deployments" ? (
+          <ApplicationDeployments
+            applicationId={release.application_id}
+            canEdit={canEdit}
+            initialReleaseId={release.id}
+          />
+        ) : mode === "readiness" ? (
           <ReleaseReadiness release={release} canEdit={canEdit} />
         ) : mode === "edit" && editable ? (
           <form

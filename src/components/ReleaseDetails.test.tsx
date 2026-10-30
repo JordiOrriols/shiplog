@@ -31,6 +31,7 @@ const release = releaseSchema.parse({
   status: "draft",
   published_at: null,
   first_published_at: null,
+  first_deployed_at: null,
   created_at: "2026-10-30T12:00:00Z",
 });
 function show(canEdit = true, firstPublished: string | null = null) {

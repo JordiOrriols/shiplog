@@ -27,6 +27,18 @@ Release history and communication on the same Supabase project and shared
   audited reason, without falsifying checklist completion or QA results.
 - Approved readiness is locked until explicitly reopened with a reason; reopening
   revokes approval and resets QA while retaining checklist completion.
+- Manual, append-only deployment outcomes (succeeded, failed, cancelled, rollback),
+  with start/completion times, recorder, source, build reference, report link and
+  private notes/errors. Owners and editors may record outcomes for all environments.
+- Reported current versions per environment are derived from successful outcomes
+  and rollbacks ordered by completion time, then recording sequence for ties.
+  Failed/cancelled or older backfilled outcomes do not replace newer successes.
+- Explicit rollbacks restore a previously deployed version in the same environment.
+  The source must match the reported version at that point in history; a reason
+  is required. Rollback records do not erase prior deployments.
+- Production readiness produces saved warnings, not recording restrictions.
+  Successful deployment records freeze release content, without changing QA,
+  lifecycle approval or public note publication.
 - **One revocable public catalog URL per workspace**, listing all included
   applications with a URL-backed application filter. Individual release URLs
   remain inside that same catalog.
@@ -93,6 +105,11 @@ empty revision-0 snapshots; future templates never retroactively change them.
 Template saves use optimistic revision checks to prevent overwriting concurrent
 edits.
 
+`20261030220000_shiplog_manual_deployments.sql` adds the deployment ledger,
+RLS-protected reported environment versions and the authorized recording RPC.
+It has been applied to shared Supabase with approval. Existing releases do not receive invented
+deployment history. The `first_deployed_at` field locks deployed release content.
+
 ```sh
 npx supabase link --project-ref <shared-project-ref>
 npx supabase db push --linked --dry-run
@@ -125,6 +142,10 @@ Manual readiness is tested against the complete migration chain in PGlite and
 with component tests. `manual-readiness.spec.ts` uses live Supabase to verify
 template snapshots, QA gates, owner overrides, reopening, persisted approval and
 public-data exclusion. Role restrictions also have database and component coverage.
+`deployments.spec.ts` verifies live outcome recording, completion-time ordering,
+environment isolation, rollback validation, content locks and private metadata
+exclusion. Database tests additionally enforce viewer/outsider denial and the
+append-only ledger; component tests cover save failures and read-only controls.
 
 GitHub Actions follows the existing apps: pushes to `main` or `master` compile,
 lint, format-check, test and build before GitHub Pages deployment. Configure
@@ -133,9 +154,8 @@ Pages and the Shiplog custom domain before deployment.
 
 ## Next vertical slices
 
-1. Manual deployment events, environment versions and rollback tracking.
-2. Incidents, affected/fixed/verified versions and private attachments.
-3. Jira email outbox, retries, notifications and comparison.
+1. Incidents, affected/fixed/verified versions and private attachments.
+2. Jira email outbox, retries, notifications and comparison.
 
 API keys, API-based release creation, automated ingestion and E2E result tracking
 are out of the current manual-only scope.

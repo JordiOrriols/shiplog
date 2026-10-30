@@ -17,6 +17,7 @@ import { useData } from "@/data/DataProvider";
 import { type Release, type Application } from "@/lib/contracts";
 import ReleaseDetails from "@/components/ReleaseDetails";
 import ChecklistTemplate from "@/components/ChecklistTemplate";
+import ApplicationDeployments from "@/components/ApplicationDeployments";
 import {
   Field,
   TextField,
@@ -39,6 +40,8 @@ export default function WorkspacePage({
   const [publication, setPublication] = useState<Release | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [templateApplication, setTemplateApplication] =
+    useState<Application | null>(null);
+  const [deploymentApplication, setDeploymentApplication] =
     useState<Application | null>(null);
   const [publicDraft, setPublicDraft] = useState<{
     id: string;
@@ -141,6 +144,13 @@ export default function WorkspacePage({
                 {app.description}
               </p>
               <p className="text-xs font-mono">{app.slug}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setDeploymentApplication(app)}
+              >
+                {t("deployments.title")}
+              </Button>
               {workspace.access_level === "owner" && (
                 <Button
                   size="sm"
@@ -300,6 +310,26 @@ export default function WorkspacePage({
           application={templateApplication}
           onClose={() => setTemplateApplication(null)}
         />
+      )}
+      {deploymentApplication && (
+        <Modal
+          isOpen
+          title={t("deployments.applicationTitle", {
+            name: deploymentApplication.name,
+          })}
+          description={t("deployments.description")}
+          closeLabel={t("common.close")}
+          onOpenChange={(open) => {
+            if (!open) setDeploymentApplication(null);
+          }}
+        >
+          <div className="max-h-[calc(100dvh-16rem)] overflow-y-auto">
+            <ApplicationDeployments
+              applicationId={deploymentApplication.id}
+              canEdit={canEdit}
+            />
+          </div>
+        </Modal>
       )}
       <ConfirmDialog
         isOpen={!!publication}

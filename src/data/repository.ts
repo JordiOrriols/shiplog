@@ -12,6 +12,10 @@ import {
   readinessSchema,
   manualQaInputSchema,
   type ReadinessTransition,
+  environmentSchema,
+  environmentVersionSchema,
+  deploymentSchema,
+  deploymentInputSchema,
 } from "@/lib/contracts";
 
 export function createShiplogRepository(client: SupabaseClient) {
@@ -42,6 +46,46 @@ export function createShiplogRepository(client: SupabaseClient) {
     }
   }
   return {
+    deployments: async (application: string) => {
+      const [environments, versions, deployments] = await Promise.all([
+        client
+          .from("shiplog_environments")
+          .select("*")
+          .eq("application_id", application)
+          .order("name"),
+        client
+          .from("shiplog_environment_versions")
+          .select("*")
+          .eq("application_id", application),
+        list(
+          "shiplog_deployments",
+          deploymentSchema,
+          "application_id",
+          application,
+        ),
+      ]);
+      if (environments.error)
+        throw new Error(environments.error.message, {
+          cause: environments.error,
+        });
+      if (versions.error)
+        throw new Error(versions.error.message, { cause: versions.error });
+      return {
+        environments: z.array(environmentSchema).parse(environments.data),
+        versions: z.array(environmentVersionSchema).parse(versions.data),
+        deployments: deployments.sort(
+          (a, b) =>
+            Date.parse(b.completed_at) - Date.parse(a.completed_at) ||
+            b.sequence - a.sequence,
+        ),
+      };
+    },
+    recordDeployment: async (input: unknown) =>
+      deploymentSchema.parse(
+        await rpc("shiplog_record_deployment", {
+          input: deploymentInputSchema.parse(input),
+        }),
+      ),
     checklistTemplate: async (application: string) => {
       const { data, error } = await client
         .from("shiplog_checklist_templates")
