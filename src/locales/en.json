@@ -49,6 +49,10 @@
     "type": "Release type"
   },
   "applications": {
+    "edit": "Edit application",
+    "editNamed": "Edit {{name}}",
+    "team": "Team (optional)",
+    "noTeam": "No team",
     "description": "The products and services your workspace ships.",
     "new": "New application",
     "slug": "Identifier",
@@ -66,10 +70,12 @@
     "other": "Other"
   },
   "releases": {
+    "autoType": "Major, minor or patch is detected automatically from the highest existing semantic version. The first release is compared with 0.0.0.",
+    "notesEditable": "Changes to published notes appear immediately on the public page and are audited.",
     "edit": "Edit draft",
     "preview": "Public preview",
     "previewNotice": "Preview only. This shows the public notes and explicitly public changes, without publishing anything.",
-    "historyLocked": "Release history is locked after first publication or when it leaves draft status. Unpublishing does not unlock editing.",
+    "historyLocked": "Version details and included changes are locked outside an unpublished, undeployed draft. Public release notes remain editable.",
     "description": "Every version, with internal context and a public story.",
     "new": "New release",
     "internal": "Internal notes",
@@ -97,6 +103,7 @@
     "hotfix": "Hotfix"
   },
   "statuses": {
+    "qa": "QA",
     "draft": "Draft",
     "ready_for_qa": "Ready for QA",
     "qa_in_progress": "QA in progress",
@@ -105,6 +112,64 @@
     "released": "Released",
     "deprecated": "Deprecated",
     "rolled_back": "Rolled back"
+  },
+  "simple": {
+    "qa": "QA",
+    "approvals": "Approvals",
+    "status": "Release status",
+    "approved": "Approved",
+    "disapproved": "Disapproved",
+    "pending": "Pending",
+    "approve": "Approve",
+    "disapprove": "Disapprove",
+    "checkProgress": "{{completed}} of {{total}} checks passed",
+    "noChecks": "No QA checks for this release. Configure a checklist template for future releases.",
+    "saveNotes": "Save release notes"
+  },
+  "deployments": {
+    "title": "Deployments",
+    "applicationTitle": "{{name}} deployments",
+    "description": "Environment versions and recorded deployment history.",
+    "notice": "Manual records only. Shiplog does not deploy software or verify running systems. Current versions reflect the latest reported successful outcome per environment.",
+    "current": "Reported environment versions",
+    "environmentVersion": "{{environment}} reported version",
+    "unknown": "Not recorded",
+    "record": "Record deployment outcome",
+    "save": "Save deployment record",
+    "immutable": "Completed outcomes are append-only. Check the environment, version and timestamps before saving. Recording does not publish notes or change approval.",
+    "history": "Deployment history",
+    "empty": "No deployment outcomes recorded.",
+    "environment": "Environment",
+    "release": "Release version (rollback source)",
+    "outcome": "Deployment outcome",
+    "rollbackTarget": "Rollback target version",
+    "chooseTarget": "Choose a version",
+    "rollbackNotice": "The target must have been deployed to this same environment before. The source must match the reported version at the recorded completion time.",
+    "warningNotice": "Production readiness warnings only. Historical outcomes can still be recorded. Warnings are saved with the record.",
+    "timezone": "Enter dates in your local timezone: {{timezone}}.",
+    "start": "Deployment started",
+    "completed": "Deployment completed",
+    "invalidDates": "Enter valid start and completion dates.",
+    "source": "Deployment source",
+    "build": "Commit or build reference",
+    "pipelineUrl": "Pipeline or report URL (HTTP/HTTPS)",
+    "pipeline": "Open pipeline or report",
+    "notes": "Deployment notes",
+    "rollbackReason": "Rollback reason",
+    "errors": "Error details",
+    "started": "Started {{date}}",
+    "recordedBy": "Recorded by {{actor}} · {{date}}",
+    "outcomes": {
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "rollback": "Rollback"
+    },
+    "warnings": {
+      "release_not_approved": "Release is not approved.",
+      "manual_qa_not_passed": "Manual QA has not passed.",
+      "mandatory_items_incomplete": "Mandatory checklist items are incomplete."
+    }
   },
   "readiness": {
     "title": "Readiness",

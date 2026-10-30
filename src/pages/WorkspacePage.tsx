@@ -17,12 +17,9 @@ import { useData } from "@/data/DataProvider";
 import { type Release, type Application } from "@/lib/contracts";
 import ReleaseDetails from "@/components/ReleaseDetails";
 import ChecklistTemplate from "@/components/ChecklistTemplate";
-import {
-  Field,
-  TextField,
-  ReleaseFields,
-  releaseFormInput,
-} from "@/components/ReleaseFields";
+import ApplicationDeployments from "@/components/ApplicationDeployments";
+import ApplicationForm from "@/components/ApplicationForm";
+import { ReleaseFields, releaseFormInput } from "@/components/ReleaseFields";
 
 export default function WorkspacePage({
   section,
@@ -35,10 +32,14 @@ export default function WorkspacePage({
   const query = useWorkspaceData();
   const action = useAsyncAction();
   const [open, setOpen] = useState(false);
+  const [editingApplication, setEditingApplication] =
+    useState<Application | null>(null);
   const [filter, setFilter] = useState("");
   const [publication, setPublication] = useState<Release | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [templateApplication, setTemplateApplication] =
+    useState<Application | null>(null);
+  const [deploymentApplication, setDeploymentApplication] =
     useState<Application | null>(null);
   const [publicDraft, setPublicDraft] = useState<{
     id: string;
@@ -133,14 +134,31 @@ export default function WorkspacePage({
             <article key={app.id} className="panel space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <h2 className="text-lg font-semibold">{app.name}</h2>
-                <span className="text-xs text-muted-foreground">
-                  {t(`platforms.${app.platform}`)}
-                </span>
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={t("applications.editNamed", { name: app.name })}
+                    onClick={() => setEditingApplication(app)}
+                  >
+                    {t("changes.edit")}
+                  </Button>
+                )}
               </div>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {app.description}
               </p>
-              <p className="text-xs font-mono">{app.slug}</p>
+              <p className="text-xs text-muted-foreground">
+                {query.data.teams.find((team) => team.id === app.team_id)
+                  ?.name ?? t("applications.noTeam")}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setDeploymentApplication(app)}
+              >
+                {t("deployments.title")}
+              </Button>
               {workspace.access_level === "owner" && (
                 <Button
                   size="sm"
@@ -238,8 +256,12 @@ export default function WorkspacePage({
                       {release.title}
                     </button>
                     <p className="text-xs text-muted-foreground">
-                      {t(`statuses.${release.status}`)} ·{" "}
-                      {t(`releaseTypes.${release.release_type}`)} ·{" "}
+                      <span
+                        className={`inline-flex rounded-full px-2 py-0.5 font-medium ${release.status === "released" ? "bg-green-100 text-green-800" : release.status === "qa" ? "bg-amber-100 text-amber-800" : "bg-muted text-muted-foreground"}`}
+                      >
+                        {t(`statuses.${release.status}`)}
+                      </span>{" "}
+                      · {t(`releaseTypes.${release.release_type}`)} ·{" "}
                       {date(release.created_at)}
                     </p>
                   </div>
@@ -281,11 +303,17 @@ export default function WorkspacePage({
           )}
         </section>
       )}
-      {open && (
-        <CreateForm
-          section={section === "applications" ? "applications" : "releases"}
-          onClose={() => setOpen(false)}
+      {(editingApplication || (open && section === "applications")) && (
+        <ApplicationForm
+          {...(editingApplication ? { application: editingApplication } : {})}
+          onClose={() => {
+            setEditingApplication(null);
+            setOpen(false);
+          }}
         />
+      )}
+      {open && section !== "applications" && (
+        <CreateForm onClose={() => setOpen(false)} />
       )}
       {detail && (
         <ReleaseDetails
@@ -300,6 +328,26 @@ export default function WorkspacePage({
           application={templateApplication}
           onClose={() => setTemplateApplication(null)}
         />
+      )}
+      {deploymentApplication && (
+        <Modal
+          isOpen
+          title={t("deployments.applicationTitle", {
+            name: deploymentApplication.name,
+          })}
+          description={t("deployments.description")}
+          closeLabel={t("common.close")}
+          onOpenChange={(open) => {
+            if (!open) setDeploymentApplication(null);
+          }}
+        >
+          <div className="max-h-[calc(100dvh-16rem)] overflow-y-auto">
+            <ApplicationDeployments
+              applicationId={deploymentApplication.id}
+              canEdit={canEdit}
+            />
+          </div>
+        </Modal>
       )}
       <ConfirmDialog
         isOpen={!!publication}
@@ -334,13 +382,7 @@ export default function WorkspacePage({
   );
 }
 
-function CreateForm({
-  section,
-  onClose,
-}: {
-  section: "applications" | "releases";
-  onClose: () => void;
-}) {
+function CreateForm({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const { workspace } = useWorkspace();
   const { repository } = useData();
@@ -350,14 +392,8 @@ function CreateForm({
   return (
     <Modal
       isOpen
-      title={t(
-        section === "applications" ? "applications.new" : "releases.new",
-      )}
-      description={t(
-        section === "applications"
-          ? "applications.description"
-          : "releases.description",
-      )}
+      title={t("releases.new")}
+      description={t("releases.description")}
       onOpenChange={(value) => {
         if (!value && !action.busy) onClose();
       }}
@@ -368,67 +404,30 @@ function CreateForm({
         onSubmit={(event) => {
           event.preventDefault();
           if (action.busy || !repository || !workspace) return;
-          const form = new FormData(event.currentTarget);
-          const field = (name: string) => String(form.get(name) ?? "");
           const releaseInput = releaseFormInput(event.currentTarget);
           void action.run(async () => {
-            if (section === "applications")
-              await repository.createApplication(
-                workspace.id,
-                field("name"),
-                field("slug"),
-                field("platform"),
-                field("description"),
-              );
-            else await repository.createRelease(releaseInput);
+            await repository.createRelease(releaseInput);
             await query.refresh();
             onClose();
           });
         }}
       >
-        {section === "applications" ? (
-          <>
-            <Field name="name" label={t("common.name")} maxLength={120} />
-            <Field
-              name="slug"
-              label={t("applications.slug")}
-              pattern="[a-z0-9]+(-[a-z0-9]+)*"
-              maxLength={80}
-            />
-            <Label htmlFor="platform">{t("applications.platform")}</Label>
-            <select id="platform" name="platform" className="field">
-              {["web", "ios", "android", "backend", "api", "other"].map(
-                (item) => (
-                  <option key={item} value={item}>
-                    {t(`platforms.${item}`)}
-                  </option>
-                ),
-              )}
-            </select>
-            <TextField
-              name="description"
-              label={t("common.description")}
-              maxLength={4000}
-            />
-          </>
-        ) : (
-          <>
-            <Label htmlFor="application_id">{t("common.application")}</Label>
-            <select
-              id="application_id"
-              name="application_id"
-              className="field"
-              required
-            >
-              {applications.map((app) => (
-                <option key={app.id} value={app.id}>
-                  {app.name}
-                </option>
-              ))}
-            </select>
-            <ReleaseFields />
-          </>
-        )}
+        <>
+          <Label htmlFor="application_id">{t("common.application")}</Label>
+          <select
+            id="application_id"
+            name="application_id"
+            className="field"
+            required
+          >
+            {applications.map((app) => (
+              <option key={app.id} value={app.id}>
+                {app.name}
+              </option>
+            ))}
+          </select>
+          <ReleaseFields />
+        </>
         {action.error && (
           <p role="alert" className="text-destructive">
             {action.error}

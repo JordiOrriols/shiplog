@@ -62,11 +62,11 @@ beforeAll(async () => {
       access,
     ]);
   app = await value(
-    "select (public.shiplog_create_application($1,'Website','website','web')).id as value",
+    "select (public.shiplog_save_application($1,'Website')).id as value",
     [workspace],
   );
   secondApp = await value(
-    "select (public.shiplog_create_application($1,'API','api','api')).id as value",
+    "select (public.shiplog_save_application($1,'API')).id as value",
     [workspace],
   );
   release = (await createRelease()).id;
@@ -159,7 +159,7 @@ describe("Shiplog workspace foundation", () => {
       "1.0.0+",
     ]) {
       await expect(createRelease(app, version)).rejects.toThrow(
-        /check constraint/,
+        /check constraint|invalid input syntax/,
       );
     }
     for (const version of [

@@ -31,6 +31,52 @@ describe("Shiplog transport", () => {
     ).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
   });
+  it("rejects invalid deployment outcomes before transport and surfaces deployment server errors", async () => {
+    const { fetch, response, repository } = setup();
+    await expect(
+      repository.recordDeployment({ outcome: "succeeded" }),
+    ).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+    const input = {
+      environment_id: "11111111-1111-4111-8111-111111111111",
+      release_id: "22222222-2222-4222-8222-222222222222",
+      outcome: "succeeded",
+      rollback_target_id: null,
+      started_at: "2026-01-01T12:00:00Z",
+      completed_at: "2026-01-02T12:00:00Z",
+      source: "Manual",
+      build_reference: "",
+      pipeline_url: "",
+      notes: "",
+      error_details: "",
+    };
+    for (const patch of [
+      { pipeline_url: "javascript:alert(1)" },
+      { started_at: "2026-01-03T12:00:00Z" },
+      { outcome: "rollback" },
+      { rollback_target_id: input.release_id },
+    ])
+      await expect(
+        repository.recordDeployment({ ...input, ...patch }),
+      ).rejects.toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockResolvedValueOnce(
+      response(
+        {
+          message:
+            "Rollback source must match the reported environment version at that time",
+        },
+        400,
+      ),
+    );
+    await expect(repository.recordDeployment(input)).rejects.toThrow(
+      "Rollback source must match",
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/rpc/shiplog_record_deployment"),
+      expect.objectContaining({ body: JSON.stringify({ input }) }),
+    );
+  });
   it("validates draft edits and changes before transport and surfaces mutation failures", async () => {
     const { fetch, response, repository } = setup();
     await expect(
@@ -95,10 +141,7 @@ describe("Shiplog transport", () => {
       }),
     ).rejects.toThrow();
     await expect(
-      repository.recordManualQa("release", { qa_status: "invalid", notes: "" }),
-    ).rejects.toThrow();
-    await expect(
-      repository.transitionReadiness("release", "approved", "x".repeat(4001)),
+      repository.updatePublicNotes("release", "x".repeat(20001)),
     ).rejects.toThrow();
     expect(fetch).not.toHaveBeenCalled();
     fetch.mockResolvedValueOnce(
@@ -126,9 +169,9 @@ describe("Shiplog transport", () => {
     fetch.mockResolvedValueOnce(
       response({ message: "Workspace owner access required" }, 403),
     );
-    await expect(
-      repository.transitionReadiness("release", "approved", "Emergency"),
-    ).rejects.toThrow("Workspace owner access required");
+    await expect(repository.decideRelease("release", true)).rejects.toThrow(
+      "Workspace owner access required",
+    );
   });
   it("distinguishes an unconfigured template from transport failures and validates readiness responses", async () => {
     const { fetch, response, repository } = setup();
@@ -156,7 +199,7 @@ describe("Shiplog transport", () => {
       id: "11111111-1111-4111-8111-111111111111",
       workspace_id: "22222222-2222-4222-8222-222222222222",
       name: "Website",
-      slug: "website",
+      team_id: null,
       description: "",
       platform: "web",
       public_enabled: false,
@@ -165,6 +208,7 @@ describe("Shiplog transport", () => {
     fetch.mockImplementation(async (url) => {
       const path = String(url);
       if (path.includes("shiplog_releases")) return response([]);
+      if (path.includes("/rpc/shiplog_list_teams")) return response([]);
       return response(
         path.includes("offset=500")
           ? [application]
@@ -174,9 +218,76 @@ describe("Shiplog transport", () => {
     expect(
       (await repository.loadWorkspace(application.workspace_id)).applications,
     ).toHaveLength(501);
-    for (const [url] of fetch.mock.calls)
+    for (const [url] of fetch.mock.calls.filter(
+      ([url]) => !String(url).includes("/rpc/"),
+    ))
       expect(String(url)).toContain(
         `workspace_id=eq.${application.workspace_id}`,
       );
+  });
+  it("pages deployment history by application and orders it by outcome time rather than recording time", async () => {
+    const { fetch, response, repository } = setup();
+    const app = "11111111-1111-4111-8111-111111111111";
+    const environment = "22222222-2222-4222-8222-222222222222";
+    const release = "33333333-3333-4333-8333-333333333333";
+    const deployment = {
+      id: "44444444-4444-4444-8444-444444444444",
+      application_id: app,
+      environment_id: environment,
+      release_id: release,
+      outcome: "succeeded",
+      rollback_target_id: null,
+      started_at: "2026-01-01T10:00:00Z",
+      completed_at: "2026-01-01T12:00:00Z",
+      source: "Manual",
+      build_reference: "",
+      pipeline_url: "",
+      notes: "",
+      error_details: "",
+      sequence: 1,
+      recorded_by: null,
+      created_at: "2026-01-02T12:00:00Z",
+      readiness_warnings: [],
+    };
+    fetch.mockImplementation(async (url) => {
+      const path = String(url);
+      if (path.includes("shiplog_environments?"))
+        return response([
+          {
+            id: environment,
+            application_id: app,
+            name: "Production",
+            kind: "production",
+          },
+        ]);
+      if (path.includes("shiplog_environment_versions?"))
+        return response([
+          {
+            environment_id: environment,
+            application_id: app,
+            deployment_id: deployment.id,
+            release_id: release,
+            completed_at: deployment.completed_at,
+          },
+        ]);
+      return response(
+        path.includes("offset=500")
+          ? [
+              {
+                ...deployment,
+                sequence: 2,
+                completed_at: "2026-01-03T12:00:00Z",
+              },
+            ]
+          : Array(500).fill(deployment),
+      );
+    });
+    const result = await repository.deployments(app);
+    expect(result.deployments).toHaveLength(501);
+    expect(result.deployments[0]!.sequence).toBe(2);
+    expect(result.environments).toHaveLength(1);
+    expect(result.versions).toHaveLength(1);
+    for (const [url] of fetch.mock.calls)
+      expect(String(url)).toContain(`application_id=eq.${app}`);
   });
 });

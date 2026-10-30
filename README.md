@@ -8,25 +8,48 @@ Release history and communication on the same Supabase project and shared
 - Shared Supabase accounts, production cross-subdomain sessions, email/GitHub
   login, signup and password recovery through UI.
 - Existing workspace creation, switching and per-app owner/editor/viewer sharing.
-- Applications with private-by-default catalog visibility and initial staging and
-  production environment records.
-- Manual semantic-version releases with separate internal and public notes.
+- Editable applications with an optional link to an existing workspace team.
+  A team may manage multiple applications; identifiers and platforms are removed.
+  Catalog visibility is private by default, with initial staging and production
+  environment records.
+- Manual semantic-version releases with public notes. Major/minor/patch is
+  inferred against the highest existing SemVer in the application, not insertion
+  order (initial baseline `0.0.0`). Prerelease precedence and build metadata follow
+  SemVer. Version edits exclude the edited release from the comparison.
 - Editable, never-published drafts and categorized changes, private by default.
 - Authenticated public previews using the same server projection and rendering
   as the public catalog; only explicitly public changes are included.
-- Content is permanently locked after first publication (even after unpublishing)
-  or when the release leaves draft status. Draft mutations record private
-  before/after audit history.
+- Version/title and included changes are editable only on unpublished,
+  undeployed drafts. First publication or successful deployment permanently locks
+  those fields, even after unpublishing. Owners/editors can edit public notes at
+  any time from release details, including on published/deployed releases;
+  published changes are immediately reflected in the public catalog.
+  Changes record private before/after audit history.
 - Explicit publication/unpublication, independent of lifecycle and deployment.
 - Owner-managed application checklist templates, snapshotted for each new release.
   Later template edits never alter existing release checklists.
-- Manual QA results and observations, checklist completion with actor/timestamps,
-  and owner-only approval. Editors can record QA and complete checklist items.
-- Readiness gates require mandatory items before entering QA, and passed manual QA
-  plus mandatory items before approval. Owners can explicitly override with an
-  audited reason, without falsifying checklist completion or QA results.
-- Approved readiness is locked until explicitly reopened with a reason; reopening
-  revokes approval and resets QA while retaining checklist completion.
+- A simple **QA** tab shows passed checks and progress, with completion
+  actor/timestamps. Owners/editors can check or uncheck items in any lifecycle.
+- A separate **Approvals** tab lists current workspace members and each person's
+  approved (green check), disapproved or pending decision. All Shiplog members,
+  including viewers, can approve/disapprove only for themselves.
+- Owners/editors manually choose the three release-list tags: **Draft**, **QA**
+  and **Released**. QA checks and approvals do not automatically change status;
+  there are no aggregate readiness gates, override forms or reopening actions.
+- Manual, append-only deployment outcomes (succeeded, failed, cancelled, rollback),
+  with start/completion times, recorder, source, build reference, report link and
+  private notes/errors. Owners and editors may record outcomes for all environments.
+- Reported current versions per environment are derived from successful outcomes
+  and rollbacks ordered by completion time, then recording sequence for ties.
+  Failed/cancelled or older backfilled outcomes do not replace newer successes.
+- Explicit rollbacks restore a previously deployed version in the same environment.
+  The source must match the reported version at that point in history; a reason
+  is required. Rollback records do not erase prior deployments.
+- Production readiness produces saved warnings, not recording restrictions:
+  no current-member approval, any current-member disapproval, or incomplete
+  mandatory checks. Pending members alone do not negate another member's approval.
+  Removed members no longer affect warnings. Successful records lock version/
+  change content without changing lifecycle, individual decisions or publication.
 - **One revocable public catalog URL per workspace**, listing all included
   applications with a URL-backed application filter. Individual release URLs
   remain inside that same catalog.
@@ -93,6 +116,26 @@ empty revision-0 snapshots; future templates never retroactively change them.
 Template saves use optimistic revision checks to prevent overwriting concurrent
 edits.
 
+`20261030220000_shiplog_manual_deployments.sql` adds the deployment ledger,
+RLS-protected reported environment versions and the authorized recording RPC.
+It has been applied to shared Supabase with approval. Existing releases do not receive invented
+deployment history. The `first_deployed_at` field locks version/title and
+included changes, not public release notes.
+
+`20261030230000_shiplog_simplify_management.sql` has been applied to shared
+Supabase with explicit approval. It permanently removes application identifiers,
+platforms and internal release notes, including their stored audit snapshot fields.
+Existing `draft` statuses remain Draft; `released`, `deprecated` and `rolled_back`
+become Released; other statuses become QA. Existing owner approvals become that
+owner's individual decision. It adds optional workspace-team links and member
+decisions, and replaces the old workflow RPCs. Historical QA observations and
+audit history are retained privately, but the retired forms are no longer exposed.
+
+`20261030231000_shiplog_member_identity.sql` has also been applied with approval.
+It explicitly casts Supabase's `varchar` account email to the member RPC's `text`
+return type. Database test fixtures use the same `varchar(255)` type as Supabase
+to cover this integration detail.
+
 ```sh
 npx supabase link --project-ref <shared-project-ref>
 npx supabase db push --linked --dry-run
@@ -118,13 +161,22 @@ Database tests use PGlite with the complete shared migration chain and Supabase
 auth-role stand-ins. They test workspace isolation, editor/viewer permissions,
 SemVer constraints, publication, catalog projection and revocation.
 Draft tests cover change CRUD, permission checks, historical locks and migration
-backfill. Browser tests also compare draft preview and anonymous catalog payloads
-to verify that internal notes and private changes never leak.
+backfill. The full-chain simplification suite verifies destructive cleanup,
+editable application teams, automatic version inference, published note updates,
+manual status and member decisions. Browser tests compare draft preview and
+anonymous catalog payloads to verify that private changes and QA/member/team
+metadata never leak.
 Browser tests live in the separate `e2e-tests` project under `tests/shiplog`.
-Manual readiness is tested against the complete migration chain in PGlite and
-with component tests. `manual-readiness.spec.ts` uses live Supabase to verify
-template snapshots, QA gates, owner overrides, reopening, persisted approval and
-public-data exclusion. Role restrictions also have database and component coverage.
+Historical readiness migration tests explicitly stop before simplification;
+current foundation, draft, checklist, approval and deployment behavior is tested
+against the complete migration chain. `manual-readiness.spec.ts` uses live Supabase
+to verify application editing/team reuse, QA completion, individual decisions,
+manual status tags, published note updates and public-data exclusion.
+Role restrictions also have database and component coverage.
+`deployments.spec.ts` verifies live outcome recording, completion-time ordering,
+environment isolation, rollback validation, content locks and private metadata
+exclusion. Database tests additionally enforce viewer/outsider denial and the
+append-only ledger; component tests cover save failures and read-only controls.
 
 GitHub Actions follows the existing apps: pushes to `main` or `master` compile,
 lint, format-check, test and build before GitHub Pages deployment. Configure
@@ -133,9 +185,8 @@ Pages and the Shiplog custom domain before deployment.
 
 ## Next vertical slices
 
-1. Manual deployment events, environment versions and rollback tracking.
-2. Incidents, affected/fixed/verified versions and private attachments.
-3. Jira email outbox, retries, notifications and comparison.
+1. Incidents, affected/fixed/verified versions and private attachments.
+2. Jira email outbox, retries, notifications and comparison.
 
 API keys, API-based release creation, automated ingestion and E2E result tracking
 are out of the current manual-only scope.
