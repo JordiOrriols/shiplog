@@ -133,7 +133,11 @@ export default function AppLayout() {
           />
         )}
       </AppMain>
-      <AppFooter text={t("app.footer")} />
+      <AppFooter
+        projectId="shiplog"
+        language={i18n.language}
+        text={t("app.footer")}
+      />
     </AppPage>
   );
 }
