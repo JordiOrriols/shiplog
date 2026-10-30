@@ -26,15 +26,13 @@ does not claim that a release is deployed or approved.
 Use Node.js 26 LTS with npm 11.20.0. Run `nvm install && nvm use` to select
 the `.nvmrc` version used by CI and deployment.
 
-UI's Shiplog registry update is in https://github.com/JordiOrriols/ui/pull/1.
-The intended registry dependency is UI `^0.3.17`; merge/release that PR before
-installing this project on a fresh checkout. Local validation during bootstrapping
-used a packaged build of that candidate, not an npm link. No candidate archive
-or local dependency path belongs in the committed manifest.
+Shiplog uses UI `^0.3.18` from GitHub Packages, including the shared Shiplog
+project registration, workspace sharing and authentication redirects.
+The committed lockfile contains registry packages, not local links or archives.
 
 ```sh
 # GITHUB_TOKEN needs read:packages for @jordiorriols/ui.
-npm install
+npm ci
 cp .env.example .env
 # Configure the SAME Supabase URL and publishable key as the other apps.
 npm start
@@ -42,8 +40,7 @@ npm start
 
 Open http://127.0.0.1:5178. Environment files are ignored. Never place service-role
 keys, database passwords or integration tokens in Vite environment variables.
-Generate and commit the registry lockfile after UI publication; the deploy
-workflow uses `npm ci`.
+The deploy workflow also uses `npm ci`.
 
 Authentication screens reuse the existing six-language auth catalogs.
 The first release-management screens currently use English fallback copy.
