@@ -1,0 +1,119 @@
+{
+  "app": {
+    "name": "Shiplog",
+    "subtitle": "Release history & communication",
+    "pages": "Shiplog pages",
+    "switchProject": "Switch project",
+    "language": "Language",
+    "loading": "Loading Shiplog",
+    "errors": { "title": "Something went wrong" },
+    "actions": { "tryAgain": "Try again" },
+    "footer": "Made with love by Jordi Orriols"
+  },
+  "welcome": {
+    "title": "Know what shipped. Tell the story.",
+    "description": "One workspace for your applications, release history and public release notes.",
+    "releases": "Release history",
+    "privacy": "Private engineering notes",
+    "portal": "One shared release catalog",
+    "authUnavailable": "Configure Supabase to sign in. Shiplog does not save release data locally."
+  },
+  "workspace": {
+    "empty": {
+      "title": "No workspace yet",
+      "description": "Create a workspace from the workspace menu, or ask its owner to share one with you in Shiplog."
+    }
+  },
+  "sections": {
+    "overview": "Overview",
+    "applications": "Applications",
+    "releases": "Releases",
+    "portal": "Public portal"
+  },
+  "common": {
+    "create": "Create",
+    "cancel": "Cancel",
+    "close": "Close",
+    "allApps": "All applications",
+    "application": "Application",
+    "name": "Name",
+    "description": "Description",
+    "title": "Title",
+    "empty": "Nothing here yet.",
+    "readOnly": "You have read-only access to this workspace.",
+    "retry": "Retry",
+    "loading": "Loading",
+    "version": "Version",
+    "type": "Release type"
+  },
+  "applications": {
+    "description": "The products and services your workspace ships.",
+    "new": "New application",
+    "slug": "Identifier",
+    "platform": "Platform",
+    "public": "Include in public catalog",
+    "private": "Not included in public catalog",
+    "hint": "Public catalogs show only published releases from applications explicitly included here."
+  },
+  "platforms": {
+    "web": "Web",
+    "ios": "iOS",
+    "android": "Android",
+    "backend": "Backend",
+    "api": "API",
+    "other": "Other"
+  },
+  "releases": {
+    "description": "Every version, with internal context and a public story.",
+    "new": "New release",
+    "internal": "Internal notes",
+    "public": "Public release notes",
+    "publish": "Publish notes",
+    "unpublish": "Unpublish notes",
+    "published": "Published",
+    "draft": "Not published",
+    "publicationNotice": "Publishing notes does not deploy this release or change its lifecycle.",
+    "noApplications": "Create an application before adding its first release.",
+    "versionHint": "Semantic version, for example 1.0.0 or 1.1.0-beta.1.",
+    "count": "{{count}} releases",
+    "applicationCount": "{{count}} applications",
+    "publishedCount": "{{count}} published releases",
+    "recent": "Recent releases",
+    "detail": "Release details",
+    "created": "Created {{date}}",
+    "publishDescription": "These public notes will be available through the workspace catalog when the application is included. Internal notes remain private.",
+    "confirmUnpublish": "Remove these notes from the public catalog? The internal release remains."
+  },
+  "releaseTypes": {
+    "major": "Major",
+    "minor": "Minor",
+    "patch": "Patch",
+    "hotfix": "Hotfix"
+  },
+  "statuses": {
+    "draft": "Draft",
+    "ready_for_qa": "Ready for QA",
+    "qa_in_progress": "QA in progress",
+    "qa_passed": "QA passed",
+    "approved": "Approved",
+    "released": "Released",
+    "deprecated": "Deprecated",
+    "rolled_back": "Rolled back"
+  },
+  "portal": {
+    "description": "One public link for all included applications in this workspace. Visitors can filter by application.",
+    "create": "Enable public catalog",
+    "revoke": "Revoke public catalog",
+    "link": "Public releases link",
+    "copy": "Copy link",
+    "copied": "Link copied",
+    "open": "Open catalog",
+    "disabled": "The public catalog is disabled.",
+    "revokeDescription": "The current link will stop working. Enabling the catalog again creates a new link.",
+    "unavailable": "This release catalog is unavailable.",
+    "filter": "Filter by application",
+    "empty": "No published releases to show.",
+    "title": "Release notes",
+    "detail": "Read release notes"
+  }
+}

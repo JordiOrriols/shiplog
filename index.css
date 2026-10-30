@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@jordiorriols/ui/styles/tokens";
+@source "./node_modules/@jordiorriols/ui/dist";
+
+@theme inline {
+  --color-brand: var(--primary);
+  --color-brand-foreground: var(--primary-foreground);
+  --font-heading: var(--font-sans);
+}
+
+@layer components {
+  .panel { @apply rounded-xl border border-border bg-card p-5; }
+  .field { @apply w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-ring; }
+}
