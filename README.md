@@ -36,8 +36,14 @@ Release history and communication on the same Supabase project and shared
   Later template edits never alter existing release checklists.
 - A simple **QA** tab shows passed checks and progress, with completion
   actor/timestamps. Owners/editors can check or uncheck items in any lifecycle.
-- Each release card has an approval dropdown and member decision badges. All
-  Shiplog members, including viewers, can approve/disapprove only for themselves.
+- Each release card has thumbs-up/down approval buttons and right-aligned member
+  decision badges. Unselected thumbs are gray; selected approval is green and
+  selected disapproval red. All Shiplog members, including viewers, can decide only
+  for themselves. Labels use UI's `getDisplayName`: linked workspace member name,
+  account name, then email local part; application-team names take precedence
+  when the account belongs to several teams.
+- All form/filter dropdowns use UI's `SelectField`, including workspace sharing
+  and anonymous release catalogs, rather than browser-native select popups.
 - Owners/editors manually choose the three release-list tags: **Draft**, **QA**
   and **Released**. QA checks and approvals do not automatically change status;
   the status control appears only on the first release-details tab. There are no
@@ -61,7 +67,7 @@ are intentionally deferred.
 Use Node.js 26 LTS with npm 11.20.0. Run `nvm install && nvm use` to select
 the `.nvmrc` version used by CI and deployment.
 
-Shiplog uses UI `^0.3.21` from GitHub Packages, including the shared Shiplog
+Shiplog uses UI `^0.3.22` from GitHub Packages, including the shared Shiplog
 project registration, workspace sharing and authentication redirects.
 Header, project-menu and login/welcome icons reuse the shared orange Shiplog
 branding through `projectId` and `ProjectIcon`; no local palette is maintained.
@@ -115,6 +121,14 @@ then drops the old change table/RPCs. If conversion would exceed the 20,000-char
 notes limit, the migration stops rather than truncating data. QA and approvals are
 preserved. This destructive migration has been tested and applied to the shared
 database with explicit approval.
+
+`20261031001000_shiplog_approval_names.sql` and
+`20261031002000_shiplog_approval_name_compatibility.sql` add same-workspace member
+and account names to the authorized approval directory, without changing votes.
+The legacy `name` field remains readable by deployed clients; new clients resolve
+`member_name`, `account_name` and `email` through UI's shared helper. Other-app,
+anonymous and outsider requests remain denied. Both migrations have been tested
+and applied to the shared database with approval.
 
 `20261030200000_shiplog_draft_content.sql` originally added the draft/change RPCs and the
 shared preview projection. It also backfills first-publication timestamps from

@@ -24,6 +24,42 @@ function setup() {
   return { fetch, response, repository: createShiplogRepository(client) };
 }
 describe("Shiplog transport", () => {
+  it("uses shared member/account/email display-name precedence for approvals", async () => {
+    const { fetch, response, repository } = setup();
+    const base = {
+      user_id: "11111111-1111-4111-8111-111111111111",
+      approved: true,
+      decided_at: null,
+    };
+    fetch.mockResolvedValueOnce(
+      response([
+        {
+          ...base,
+          name: "Workspace Ada",
+          member_name: "Workspace Ada",
+          account_name: "Account Ada",
+          email: "ada@example.com",
+        },
+        {
+          ...base,
+          name: "grace@example.com",
+          member_name: " ",
+          account_name: "Account Grace",
+          email: "grace@example.com",
+        },
+        {
+          ...base,
+          name: "alan@example.com",
+          member_name: null,
+          account_name: null,
+          email: "alan@example.com",
+        },
+      ]),
+    );
+    expect(
+      (await repository.decisions("release")).map((member) => member.name),
+    ).toEqual(["Workspace Ada", "Account Grace", "alan"]);
+  });
   it("pages only the authorized current-app directory and surfaces invalid data or access failures", async () => {
     const { fetch, response, repository } = setup();
     const share = {

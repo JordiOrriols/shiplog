@@ -1,7 +1,13 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { AppSkeleton, Button, Label, Modal } from "@jordiorriols/ui";
+import {
+  AppSkeleton,
+  Button,
+  Label,
+  Modal,
+  SelectField,
+} from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { useWorkspace } from "@/data/WorkspaceProvider";
@@ -95,19 +101,18 @@ export default function ApplicationForm({
                 initial={application?.description ?? ""}
               />
               <Label htmlFor="team">{t("applications.team")}</Label>
-              <select
-                className="field"
+              <SelectField
                 id="team"
                 name="team"
                 defaultValue={application?.team_id ?? ""}
-              >
-                <option value="">{t("applications.noTeam")}</option>
-                {teams.data.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: t("applications.noTeam") },
+                  ...teams.data.map((team) => ({
+                    value: team.id,
+                    label: team.name,
+                  })),
+                ]}
+              />
             </fieldset>
             {action.error && (
               <p role="alert" className="text-sm text-destructive">

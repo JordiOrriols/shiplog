@@ -9,6 +9,7 @@ import {
   AppSkeleton,
   Button,
   LanguageSelector,
+  SelectField,
 } from "@jordiorriols/ui";
 import { createShiplogRepository } from "@/data/repository";
 import { supabase } from "@/data/supabaseClient";
@@ -75,25 +76,24 @@ export default function PublicReleases() {
             ) : (
               <label className="flex flex-wrap items-center gap-3 text-sm">
                 {t("portal.filter")}
-                <select
+                <SelectField
                   aria-label={t("portal.filter")}
-                  className="field max-w-xs"
+                  className="max-w-xs"
                   value={filter}
-                  onChange={(event) => {
+                  onValueChange={(value) => {
                     const next = new URLSearchParams(search);
-                    if (event.target.value)
-                      next.set("application", event.target.value);
+                    if (value) next.set("application", value);
                     else next.delete("application");
                     setSearch(next);
                   }}
-                >
-                  <option value="">{t("common.allApps")}</option>
-                  {query.data?.applications.map((app) => (
-                    <option key={app.id} value={app.id}>
-                      {app.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: t("common.allApps") },
+                    ...query.data.applications.map((app) => ({
+                      value: app.id,
+                      label: app.name,
+                    })),
+                  ]}
+                />
               </label>
             )}
             <div className="space-y-4">

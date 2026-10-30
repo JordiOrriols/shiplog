@@ -90,6 +90,9 @@ export const teamSchema = z.object({ id: z.string().uuid(), name: z.string() });
 export const decisionSchema = z.object({
   user_id: z.string().uuid(),
   name: z.string(),
+  member_name: z.string().nullable(),
+  account_name: z.string().nullable(),
+  email: z.string(),
   approved: z.boolean().nullable(),
   decided_at: z.string().nullable(),
 });

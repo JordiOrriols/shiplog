@@ -91,9 +91,9 @@ describe("release content controls", () => {
       screen.getByLabelText("Title", { exact: true }),
       "Revised",
     );
-    await userEvent.selectOptions(
-      screen.getByLabelText("Release status"),
-      "qa",
+    await userEvent.click(screen.getByLabelText("Release status"));
+    await userEvent.click(
+      screen.getByRole("option", { name: "QA", exact: true }),
     );
     await userEvent.click(
       screen.getByRole("button", { name: "Save", exact: true }),
@@ -165,10 +165,12 @@ describe("release content controls", () => {
     });
     show();
     await userEvent.click(screen.getByRole("tab", { name: "Changes" }));
-    await screen.findByRole("option", { name: "Roadmap" });
-    await userEvent.selectOptions(
-      screen.getByLabelText("Planner feature"),
-      feature.id,
+    await waitFor(() =>
+      expect(screen.getByLabelText("Planner feature")).toBeEnabled(),
+    );
+    await userEvent.click(screen.getByLabelText("Planner feature"));
+    await userEvent.click(
+      await screen.findByRole("option", { name: "Roadmap", exact: true }),
     );
     await userEvent.click(
       screen.getByRole("button", { name: "Link feature", exact: true }),

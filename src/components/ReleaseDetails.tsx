@@ -10,6 +10,7 @@ import {
   TabsList,
   TabsTrigger,
   TabsContent,
+  SelectField,
 } from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
@@ -129,18 +130,15 @@ export default function ReleaseDetails({
               <ReleaseFields initial={release} draftEditable={editable} />
               <div className="space-y-1">
                 <Label htmlFor="release-status">{t("simple.status")}</Label>
-                <select
+                <SelectField
                   id="release-status"
                   name="status"
-                  className="field"
                   defaultValue={release.status}
-                >
-                  {["draft", "qa", "released"].map((status) => (
-                    <option key={status} value={status}>
-                      {t(`statuses.${status}`)}
-                    </option>
-                  ))}
-                </select>
+                  options={["draft", "qa", "released"].map((status) => ({
+                    value: status,
+                    label: t(`statuses.${status}`),
+                  }))}
+                />
               </div>
             </fieldset>
             {!isEditableDraft(release) && (
@@ -184,20 +182,19 @@ export default function ReleaseDetails({
                   <Label htmlFor="planner-feature">
                     {t("featureLinks.feature")}
                   </Label>
-                  <select
+                  <SelectField
                     id="planner-feature"
-                    className="field"
                     value={selected}
                     disabled={action.busy || candidates.isPending}
-                    onChange={(event) => setSelected(event.target.value)}
-                  >
-                    <option value="">{t("featureLinks.select")}</option>
-                    {available.map((feature) => (
-                      <option key={feature.id} value={feature.id}>
-                        {feature.name}
-                      </option>
-                    ))}
-                  </select>
+                    onValueChange={setSelected}
+                    options={[
+                      { value: "", label: t("featureLinks.select") },
+                      ...available.map((feature) => ({
+                        value: feature.id,
+                        label: feature.name,
+                      })),
+                    ]}
+                  />
                 </div>
               )}
               {linked.length ? (

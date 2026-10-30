@@ -7,6 +7,7 @@ import {
   EmptyState,
   Label,
   Modal,
+  SelectField,
 } from "@jordiorriols/ui";
 import { Plus, Rocket } from "@jordiorriols/ui/icons";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
@@ -163,19 +164,19 @@ export default function WorkspacePage({
           ) : (
             <label className="flex items-center gap-3 text-sm">
               {t("portal.filter")}
-              <select
+              <SelectField
                 aria-label={t("portal.filter")}
-                className="field max-w-xs"
+                className="max-w-xs"
                 value={filter}
-                onChange={(event) => setFilter(event.target.value)}
-              >
-                <option value="">{t("common.allApps")}</option>
-                {applications.map((app) => (
-                  <option key={app.id} value={app.id}>
-                    {app.name}
-                  </option>
-                ))}
-              </select>
+                onValueChange={setFilter}
+                options={[
+                  { value: "", label: t("common.allApps") },
+                  ...applications.map((app) => ({
+                    value: app.id,
+                    label: app.name,
+                  })),
+                ]}
+              />
             </label>
           )}
           {(section === "overview" ? visible.slice(0, 5) : visible).map(
@@ -292,18 +293,16 @@ function CreateForm({ onClose }: { onClose: () => void }) {
       >
         <>
           <Label htmlFor="application_id">{t("common.application")}</Label>
-          <select
+          <SelectField
             id="application_id"
             name="application_id"
-            className="field"
+            defaultValue={applications[0]?.id ?? ""}
             required
-          >
-            {applications.map((app) => (
-              <option key={app.id} value={app.id}>
-                {app.name}
-              </option>
-            ))}
-          </select>
+            options={applications.map((app) => ({
+              value: app.id,
+              label: app.name,
+            }))}
+          />
           <ReleaseFields />
         </>
         {action.error && (
