@@ -13,6 +13,7 @@ import { useData } from "@/data/DataProvider";
 import { useWorkspace } from "@/data/WorkspaceProvider";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
 import type { Application } from "@/lib/contracts";
+import { localizeError } from "@/lib/localizeError";
 import { Field, TextField } from "./ReleaseFields";
 
 export default function ApplicationForm({
@@ -58,7 +59,7 @@ export default function ApplicationForm({
           <AppSkeleton fullPage={false} label={t("common.loading")} />
         ) : teams.error ? (
           <div role="alert">
-            <p>{teams.error.message}</p>
+            <p>{localizeError(teams.error.message)}</p>
             <Button onClick={() => void teams.refetch()}>
               {t("common.retry")}
             </Button>
@@ -116,7 +117,7 @@ export default function ApplicationForm({
             </fieldset>
             {action.error && (
               <p role="alert" className="text-sm text-destructive">
-                {action.error}
+                {localizeError(action.error)}
               </p>
             )}
           </form>

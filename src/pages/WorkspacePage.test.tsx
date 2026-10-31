@@ -1,10 +1,10 @@
 import React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import "@/i18n";
+import i18n from "@/i18n";
 import WorkspacePage from "./WorkspacePage";
 
 const state = vi.hoisted(() => ({
@@ -59,6 +59,40 @@ beforeEach(() => {
 });
 
 describe("workspace application controls", () => {
+  afterEach(async () => {
+    await i18n.changeLanguage("en");
+  });
+
+  it("translates known deletion failures and updates a stored error after a language switch", async () => {
+    state.deleteApplication.mockRejectedValue(
+      new Error("Application not found"),
+    );
+    await i18n.changeLanguage("ca");
+    render(
+      <MemoryRouter>
+        <WorkspacePage section="applications" />
+      </MemoryRouter>,
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Suprimeix Website", exact: true }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Suprimeix", exact: true }),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "No s'ha trobat l'aplicació",
+    );
+    await act(async () => {
+      await i18n.changeLanguage("de");
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Anwendung nicht gefunden",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Website", exact: true }),
+    ).toBeVisible();
+  });
+
   it("uses icon-only card actions with shared hints and a team badge", async () => {
     render(
       <MemoryRouter>

@@ -166,7 +166,8 @@
     }
   },
   "changes": {
-    "category": "Category"
+    "category": "Category",
+    "edit": "Edit"
   },
   "featureLinks": {
     "details": "Details",
@@ -195,5 +196,32 @@
     "empty": "No releases to show.",
     "title": "Release notes",
     "detail": "Read release notes"
+  },
+  "errors": {
+    "editAccess": "Shiplog edit access required",
+    "access": "Shiplog access required",
+    "ownerAccess": "Workspace owner access required",
+    "sharingAccess": "Workspace sharing access required",
+    "plannerAccess": "Planner access required",
+    "applicationNotFound": "Application not found",
+    "releaseNotFound": "Release not found",
+    "hasReleases": "Applications with releases cannot be deleted",
+    "draftOnly": "Only drafts can be edited",
+    "catalogUnavailable": "Release catalog unavailable",
+    "templateConflict": "Checklist template changed. Reload before saving.",
+    "itemsArray": "Checklist items must be an array",
+    "tooManyItems": "At most 100 checklist items are allowed",
+    "invalidItem": "Invalid checklist item",
+    "itemNotFound": "Checklist item not found",
+    "completionRequired": "Completion state required",
+    "invalidNotes": "Invalid public notes",
+    "invalidStatus": "Invalid release status",
+    "decisionRequired": "Approval decision required",
+    "linkRequired": "Link state required",
+    "featureUnavailable": "Planner feature unavailable",
+    "teamWorkspace": "Team must belong to this workspace",
+    "invalidVersion": "Invalid semantic version",
+    "applicationLocked": "The release application cannot be changed",
+    "workspaceUnavailable": "Shiplog workspace unavailable"
   }
 }

@@ -22,6 +22,7 @@ import { useWorkspaceData } from "@/data/useWorkspaceData";
 import { useWorkspace } from "@/data/WorkspaceProvider";
 import { useData } from "@/data/DataProvider";
 import { type Application } from "@/lib/contracts";
+import { localizeError } from "@/lib/localizeError";
 import ReleaseDetails from "@/components/ReleaseDetails";
 import ChecklistTemplate from "@/components/ChecklistTemplate";
 import ReleaseApprovals from "@/components/ReleaseApprovals";
@@ -54,7 +55,7 @@ export default function WorkspacePage({
   if (query.error)
     return (
       <div role="alert">
-        <p>{query.error.message}</p>
+        <p>{localizeError(query.error.message)}</p>
         <Button onClick={() => void query.refetch()}>
           {t("common.retry")}
         </Button>
@@ -296,7 +297,7 @@ export default function WorkspacePage({
       )}
       {deletion.error && (
         <p role="alert" className="text-sm text-destructive">
-          {deletion.error}
+          {localizeError(deletion.error)}
         </p>
       )}
       {deletingApplication && (
@@ -385,7 +386,7 @@ function CreateForm({ onClose }: { onClose: () => void }) {
         </>
         {action.error && (
           <p role="alert" className="text-destructive">
-            {action.error}
+            {localizeError(action.error)}
           </p>
         )}
       </form>

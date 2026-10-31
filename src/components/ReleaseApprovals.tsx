@@ -5,6 +5,7 @@ import { AppSkeleton, Button } from "@jordiorriols/ui";
 import { ThumbsUp, ThumbsDown } from "@jordiorriols/ui/icons";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
+import { localizeError } from "@/lib/localizeError";
 
 export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
   const { t } = useTranslation();
@@ -24,7 +25,7 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
   if (query.error)
     return (
       <div role="alert">
-        <p>{query.error.message}</p>
+        <p>{localizeError(query.error.message)}</p>
         <Button onClick={() => void query.refetch()}>
           {t("common.retry")}
         </Button>
@@ -101,7 +102,7 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
       </ul>
       {action.error && (
         <p role="alert" className="text-sm text-destructive">
-          {action.error}
+          {localizeError(action.error)}
         </p>
       )}
     </section>

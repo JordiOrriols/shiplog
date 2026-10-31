@@ -77,6 +77,14 @@ Shiplog uses UI `^0.3.24` from GitHub Packages, including the shared Shiplog
 project registration, workspace sharing and authentication redirects.
 Header, project-menu and login/welcome icons reuse the shared orange Shiplog
 branding through `projectId` and `ProjectIcon`; no local palette is maintained.
+
+The entire interface and authentication are translated into English, Catalan,
+Spanish, French, German and Italian, including private screens, checklist actions,
+approval controls and the public catalog. Regional browser locales resolve to
+their supported base language. Locale tests verify exact key coverage without
+English fallback, interpolation placeholders and literal translation references.
+Known server errors are translated when displayed, including after switching
+language; unexpected diagnostics remain unchanged rather than being hidden.
 The committed lockfile contains registry packages, not local links or archives.
 
 ```sh
