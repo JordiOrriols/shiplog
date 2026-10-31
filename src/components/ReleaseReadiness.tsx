@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { AppSkeleton, Button, Checkbox } from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import type { Release } from "@/lib/contracts";
 import { localizeError } from "@/lib/localizeError";
+import { useReleaseReadiness } from "@/data/useReleaseReadiness";
 
 export default function ReleaseReadiness({
   release,
@@ -15,21 +16,14 @@ export default function ReleaseReadiness({
   canEdit: boolean;
 }) {
   const { t } = useTranslation();
-  const { repository, user } = useData();
+  const { repository } = useData();
   const client = useQueryClient();
   const action = useAsyncAction();
   const [pending, setPending] = useState<{
     id: string;
     checked: boolean;
   } | null>(null);
-  const key = ["shiplog-readiness", user?.id, release.id];
-  const query = useQuery({
-    queryKey: key,
-    queryFn: () => {
-      if (!repository) throw new Error(t("portal.unavailable"));
-      return repository.readiness(release.id);
-    },
-  });
+  const { query, key } = useReleaseReadiness(release.id);
   if (query.isPending)
     return <AppSkeleton fullPage={false} label={t("common.loading")} />;
   if (query.error)

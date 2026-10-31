@@ -178,6 +178,32 @@ export function createShiplogRepository(client: SupabaseClient) {
     },
     linkFeature: (release: string, feature: string, linked: boolean) =>
       rpc("shiplog_link_feature", { release, feature, linked }),
+    workspaceFeatures: async (workspace: string) => {
+      const rows: z.infer<typeof plannerFeatureSchema>[] = [];
+      for (let offset = 0; ; offset += 500) {
+        const { data, error } = await client
+          .rpc("shiplog_workspace_features", { workspace })
+          .range(offset, offset + 499);
+        if (error) throw new Error(error.message, { cause: error });
+        const page = z.array(plannerFeatureSchema).parse(data);
+        rows.push(...page);
+        if (page.length < 500) return rows;
+      }
+    },
+    saveConfiguration: async (
+      input: unknown,
+      status: string,
+      featureIds: string[] | null,
+      release: string | null = null,
+    ) =>
+      releaseSchema.parse(
+        await rpc("shiplog_save_configuration", {
+          input: releaseInputSchema.parse(input),
+          status: z.enum(["draft", "qa", "released"]).parse(status),
+          feature_ids: z.array(z.string().uuid()).nullable().parse(featureIds),
+          release: z.string().uuid().nullable().parse(release),
+        }),
+      ),
     portal: async (workspace: string, enabled?: boolean) =>
       z
         .string()

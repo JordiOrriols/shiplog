@@ -6,162 +6,175 @@ import {
   Button,
   Label,
   Modal,
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
   SelectField,
 } from "@jordiorriols/ui";
+import { Plus, X } from "@jordiorriols/ui/icons";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
+import { useWorkspace } from "@/data/WorkspaceProvider";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
 import { isEditableDraft, type Release } from "@/lib/contracts";
 import { localizeError } from "@/lib/localizeError";
 import { ReleaseFields, releaseFormInput } from "./ReleaseFields";
-import ReleaseReadiness from "./ReleaseReadiness";
 
 export default function ReleaseDetails({
   release,
   canEdit,
   onClose,
 }: {
-  release: Release;
+  release?: Release;
   canEdit: boolean;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const { repository, user } = useData();
+  const { workspace } = useWorkspace();
   const workspaceData = useWorkspaceData();
   const client = useQueryClient();
   const action = useAsyncAction();
-  const [tab, setTab] = useState("details");
   const [selected, setSelected] = useState("");
-  const editable = canEdit && isEditableDraft(release);
-  const featuresKey = ["shiplog-features", user?.id, release.id];
+  const [featureIds, setFeatureIds] = useState<string[] | null>(null);
+  const editable = canEdit && (!release || isEditableDraft(release));
+  const featuresKey = ["shiplog-features", user?.id, release?.id];
   const features = useQuery({
     queryKey: featuresKey,
-    enabled: tab === "changes",
+    enabled: !!release,
     queryFn: () => {
-      if (!repository) throw new Error(t("portal.unavailable"));
+      if (!repository || !release) throw new Error(t("portal.unavailable"));
       return repository.releaseFeatures(release.id);
     },
   });
   const candidates = useQuery({
-    queryKey: [...featuresKey, "candidates"],
-    enabled: tab === "changes" && editable,
+    queryKey: ["shiplog-workspace-features", user?.id, workspace?.id],
+    enabled: editable && !!workspace,
     queryFn: () => {
-      if (!repository) throw new Error(t("portal.unavailable"));
-      return repository.releaseFeatures(release.id, true);
+      if (!repository || !workspace) throw new Error(t("portal.unavailable"));
+      return repository.workspaceFeatures(workspace.id);
     },
   });
   const linked = features.data ?? [];
-  const available = candidates.data?.filter((feature) => !feature.linked) ?? [];
-  const link = (id: string, enabled: boolean) => {
-    if (!repository || action.busy) return;
-    void action.run(async () => {
-      await repository.linkFeature(release.id, id, enabled);
-      setSelected("");
-      await client.invalidateQueries({ queryKey: featuresKey });
-    });
-  };
+  const ids = featureIds ?? linked.map((feature) => feature.id);
+  const names = new Map(
+    [...(candidates.data ?? []), ...linked].map((feature) => [
+      feature.id,
+      feature.name,
+    ]),
+  );
+  const applications = workspaceData.data?.applications ?? [];
+  const loading = !!release && features.isPending;
   return (
     <Modal
       isOpen
-      title={`${release.version} — ${release.title}`}
+      title={
+        release ? `${release.version} — ${release.title}` : t("releases.new")
+      }
       description={t("releases.detail")}
       closeLabel={t("common.close")}
       onOpenChange={(open) => {
         if (!open && !action.busy) onClose();
       }}
       footer={
-        canEdit &&
-        (tab === "details" || (tab === "changes" && editable)) && (
+        canEdit && (
           <Button
-            type={tab === "details" ? "submit" : "button"}
-            form={tab === "details" ? "release-details-form" : undefined}
-            disabled={
-              action.busy || (tab === "changes" && (!editable || !selected))
-            }
-            onClick={tab === "changes" ? () => link(selected, true) : undefined}
+            type="submit"
+            form="release-configuration-form"
+            disabled={action.busy || loading || !!features.error}
           >
-            {t(tab === "details" ? "common.save" : "featureLinks.link")}
+            {t("common.save")}
           </Button>
         )
       }
     >
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList aria-label={t("releases.detail")}>
-          <TabsTrigger value="details" disabled={action.busy}>
-            {t("featureLinks.details")}
-          </TabsTrigger>
-          <TabsTrigger value="changes" disabled={action.busy}>
-            {t("featureLinks.changes")}
-          </TabsTrigger>
-          <TabsTrigger value="qa" disabled={action.busy}>
-            {t("simple.qa")}
-          </TabsTrigger>
-        </TabsList>
-        {action.error && (
-          <p role="alert" className="text-sm text-destructive">
-            {localizeError(action.error)}
+      <form
+        id="release-configuration-form"
+        key={`${release?.id}-${release?.status}-${release?.public_notes}`}
+        className="space-y-5"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (
+            !repository ||
+            action.busy ||
+            !canEdit ||
+            loading ||
+            features.error
+          )
+            return;
+          const input = releaseFormInput(
+            event.currentTarget,
+            release?.application_id,
+          );
+          const status = String(
+            new FormData(event.currentTarget).get("status"),
+          );
+          void action.run(async () => {
+            await repository.saveConfiguration(
+              input,
+              status,
+              featureIds,
+              release?.id ?? null,
+            );
+            await Promise.all([
+              workspaceData.refresh(),
+              client.invalidateQueries({ queryKey: featuresKey }),
+            ]);
+            setFeatureIds(null);
+            if (!release) onClose();
+          });
+        }}
+      >
+        <fieldset disabled={action.busy || !canEdit} className="space-y-4">
+          {!release && (
+            <div className="space-y-1">
+              <Label htmlFor="application_id">{t("common.application")}</Label>
+              <SelectField
+                id="application_id"
+                name="application_id"
+                defaultValue={applications[0]?.id ?? ""}
+                required
+                options={applications.map((app) => ({
+                  value: app.id,
+                  label: app.name,
+                }))}
+              />
+            </div>
+          )}
+          <ReleaseFields
+            {...(release ? { initial: release } : {})}
+            draftEditable={editable}
+          />
+          <div className="space-y-1">
+            <Label htmlFor="release-status">{t("simple.status")}</Label>
+            <SelectField
+              id="release-status"
+              name="status"
+              defaultValue={release?.status ?? "draft"}
+              options={["draft", "qa", "released"].map((status) => ({
+                value: status,
+                label: t(`statuses.${status}`),
+              }))}
+            />
+          </div>
+        </fieldset>
+        {release && !isEditableDraft(release) && (
+          <p className="text-xs text-muted-foreground">
+            {t("releases.historyLocked")}
           </p>
         )}
-        <TabsContent value="details" forceMount hidden={tab !== "details"}>
-          <form
-            id="release-details-form"
-            key={`${release.id}-${release.status}-${release.public_notes}`}
-            className="space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!repository || action.busy || !canEdit) return;
-              const input = releaseFormInput(
-                event.currentTarget,
-                release.application_id,
-              );
-              const status = String(
-                new FormData(event.currentTarget).get("status"),
-              );
-              void action.run(async () => {
-                await repository.updateDetails(release.id, input, status);
-                await workspaceData.refresh();
-              });
-            }}
-          >
-            <fieldset disabled={action.busy || !canEdit} className="space-y-4">
-              <ReleaseFields initial={release} draftEditable={editable} />
-              <div className="space-y-1">
-                <Label htmlFor="release-status">{t("simple.status")}</Label>
-                <SelectField
-                  id="release-status"
-                  name="status"
-                  defaultValue={release.status}
-                  options={["draft", "qa", "released"].map((status) => ({
-                    value: status,
-                    label: t(`statuses.${status}`),
-                  }))}
-                />
-              </div>
-            </fieldset>
-            {!isEditableDraft(release) && (
-              <p className="text-xs text-muted-foreground">
-                {t("releases.historyLocked")}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {t("releases.notesEditable")}
-            </p>
-          </form>
-        </TabsContent>
-        <TabsContent value="changes" className="space-y-4">
+        <section className="space-y-3 border-t border-border pt-4">
+          <h3 className="font-semibold">{t("featureLinks.changes")}</h3>
           <p className="text-sm text-muted-foreground">
             {t("featureLinks.description")}
           </p>
-          {features.isPending ? (
+          {loading ? (
             <AppSkeleton fullPage={false} label={t("common.loading")} />
           ) : features.error ? (
             <div role="alert">
               <p>{localizeError(features.error.message)}</p>
-              <Button variant="outline" onClick={() => void features.refetch()}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void features.refetch()}
+              >
                 {t("common.retry")}
               </Button>
             </div>
@@ -171,6 +184,7 @@ export default function ReleaseDetails({
                 <div role="alert">
                   <p>{localizeError(candidates.error.message)}</p>
                   <Button
+                    type="button"
                     variant="outline"
                     onClick={() => void candidates.refetch()}
                   >
@@ -183,42 +197,64 @@ export default function ReleaseDetails({
                   <Label htmlFor="planner-feature">
                     {t("featureLinks.feature")}
                   </Label>
-                  <SelectField
-                    id="planner-feature"
-                    value={selected}
-                    disabled={action.busy || candidates.isPending}
-                    onValueChange={setSelected}
-                    options={[
-                      { value: "", label: t("featureLinks.select") },
-                      ...available.map((feature) => ({
-                        value: feature.id,
-                        label: feature.name,
-                      })),
-                    ]}
-                  />
+                  <div className="flex items-center gap-2">
+                    <SelectField
+                      id="planner-feature"
+                      value={selected}
+                      disabled={action.busy || candidates.isPending}
+                      onValueChange={setSelected}
+                      options={[
+                        { value: "", label: t("featureLinks.select") },
+                        ...(candidates.data ?? [])
+                          .filter((feature) => !ids.includes(feature.id))
+                          .map((feature) => ({
+                            value: feature.id,
+                            label: feature.name,
+                          })),
+                      ]}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={t("featureLinks.link")}
+                      disabled={
+                        action.busy || !selected || candidates.isPending
+                      }
+                      onClick={() => {
+                        setFeatureIds([...ids, selected]);
+                        setSelected("");
+                      }}
+                    >
+                      <Plus className="size-4" aria-hidden="true" />
+                    </Button>
+                  </div>
                 </div>
               )}
-              {linked.length ? (
+              {ids.length ? (
                 <ul className="divide-y divide-border">
-                  {linked.map((feature) => (
+                  {ids.map((id) => (
                     <li
-                      key={feature.id}
-                      className="flex items-center justify-between gap-3 py-3"
+                      key={id}
+                      className="flex items-center justify-between gap-3 py-2"
                     >
                       <span className="break-words text-sm font-medium">
-                        {feature.name}
+                        {names.get(id)}
                       </span>
                       {editable && candidates.isSuccess && (
                         <Button
+                          type="button"
                           variant="ghost"
-                          size="sm"
-                          disabled={action.busy}
+                          size="icon-sm"
                           aria-label={t("featureLinks.unlinkNamed", {
-                            name: feature.name,
+                            name: names.get(id),
                           })}
-                          onClick={() => link(feature.id, false)}
+                          disabled={action.busy}
+                          onClick={() =>
+                            setFeatureIds(ids.filter((value) => value !== id))
+                          }
                         >
-                          {t("featureLinks.unlink")}
+                          <X className="size-4" aria-hidden="true" />
                         </Button>
                       )}
                     </li>
@@ -231,11 +267,13 @@ export default function ReleaseDetails({
               )}
             </>
           )}
-        </TabsContent>
-        <TabsContent value="qa">
-          <ReleaseReadiness release={release} canEdit={canEdit} />
-        </TabsContent>
-      </Tabs>
+        </section>
+        {action.error && (
+          <p role="alert" className="text-sm text-destructive">
+            {localizeError(action.error)}
+          </p>
+        )}
+      </form>
     </Modal>
   );
 }
