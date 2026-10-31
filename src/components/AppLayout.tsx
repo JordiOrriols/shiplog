@@ -9,8 +9,8 @@ import {
   AppNavigationItem,
   AppFooter,
   AppSkeleton,
-  Button,
   EmptyState,
+  ErrorState,
   LanguageSelector,
   WorkspaceBar,
   getWorkspaceLabels,
@@ -112,16 +112,13 @@ export default function AppLayout() {
         }
       />
       <AppMain className="w-full flex-1">
-        {action.error && (
-          <p role="alert" className="text-destructive">
-            {localizeError(action.error)}
-          </p>
-        )}
+        {action.error && <ErrorState message={localizeError(action.error)} />}
         {error ? (
-          <div role="alert" className="space-y-3">
-            <p>{localizeError(error)}</p>
-            <Button onClick={() => void refresh()}>{t("common.retry")}</Button>
-          </div>
+          <ErrorState
+            message={localizeError(error)}
+            onRetry={() => void refresh()}
+            retryLabel={t("common.retry")}
+          />
         ) : loading ? (
           <AppSkeleton label={t("app.loading")} />
         ) : workspace ? (

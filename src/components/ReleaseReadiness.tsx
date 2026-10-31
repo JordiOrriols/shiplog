@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
-import { AppSkeleton, Button, Checkbox } from "@jordiorriols/ui";
+import { AppSkeleton, Checkbox, ErrorState } from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import type { Release } from "@/lib/contracts";
@@ -28,12 +28,11 @@ export default function ReleaseReadiness({
     return <AppSkeleton fullPage={false} label={t("common.loading")} />;
   if (query.error)
     return (
-      <div role="alert">
-        <p>{localizeError(query.error.message)}</p>
-        <Button onClick={() => void query.refetch()}>
-          {t("common.retry")}
-        </Button>
-      </div>
+      <ErrorState
+        message={localizeError(query.error.message)}
+        onRetry={() => void query.refetch()}
+        retryLabel={t("common.retry")}
+      />
     );
   const items = query.data.items;
   return (
@@ -88,11 +87,7 @@ export default function ReleaseReadiness({
           </li>
         ))}
       </ul>
-      {action.error && (
-        <p role="alert" className="text-sm text-destructive">
-          {localizeError(action.error)}
-        </p>
-      )}
+      {action.error && <ErrorState message={localizeError(action.error)} />}
     </section>
   );
 }

@@ -5,6 +5,7 @@ import {
   AppSkeleton,
   Button,
   FormField,
+  ErrorState,
   Modal,
   SelectField,
 } from "@jordiorriols/ui";
@@ -58,12 +59,11 @@ export default function ApplicationForm({
         {teams.isPending ? (
           <AppSkeleton fullPage={false} label={t("common.loading")} />
         ) : teams.error ? (
-          <div role="alert">
-            <p>{localizeError(teams.error.message)}</p>
-            <Button onClick={() => void teams.refetch()}>
-              {t("common.retry")}
-            </Button>
-          </div>
+          <ErrorState
+            message={localizeError(teams.error.message)}
+            onRetry={() => void teams.refetch()}
+            retryLabel={t("common.retry")}
+          />
         ) : (
           <form
             id="application-form"
@@ -119,9 +119,7 @@ export default function ApplicationForm({
               </FormField>
             </fieldset>
             {action.error && (
-              <p role="alert" className="text-sm text-destructive">
-                {localizeError(action.error)}
-              </p>
+              <ErrorState message={localizeError(action.error)} />
             )}
           </form>
         )}

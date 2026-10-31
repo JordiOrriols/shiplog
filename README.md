@@ -8,6 +8,8 @@ Application and checklist modals use the shared UI modal's single content scroll
 region, keeping footer actions visible without nested vertical scrollbars.
 Field adapters reuse UI's `FormField`, `Input` and `Textarea` for applications,
 release notes and checklist editing, preserving native constraints and FormData.
+Workspace, application and QA/template query failures use UI's `ErrorState`
+with the existing localized error mapping and query retry actions.
 
 - Shared Supabase accounts, production cross-subdomain sessions, email/GitHub
   login, signup and password recovery through UI.
