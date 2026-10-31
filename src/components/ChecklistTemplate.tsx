@@ -71,7 +71,7 @@ export default function ChecklistTemplate({
         if (!open) onClose();
       }}
     >
-      <div className="max-h-[calc(100dvh-16rem)] overflow-y-auto space-y-4">
+      <div className="space-y-4">
         {query.isPending ? (
           <AppSkeleton fullPage={false} label={t("common.loading")} />
         ) : query.error ? (
@@ -134,7 +134,7 @@ function TemplateEditor({
         </Button>
       }
     >
-      <div className="max-h-[calc(100dvh-16rem)] overflow-y-auto space-y-4">
+      <div className="space-y-4">
         {saved && <p role="status">{t("readiness.templateSaved")}</p>}
         <p className="text-xs text-muted-foreground">
           {t("readiness.revision", { revision: initial.revision })}

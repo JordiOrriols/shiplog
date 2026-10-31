@@ -54,7 +54,7 @@ export default function ApplicationForm({
         if (!open && !action.busy) onClose();
       }}
     >
-      <div className="max-h-[calc(100dvh-16rem)] overflow-y-auto space-y-4">
+      <div className="space-y-4">
         {teams.isPending ? (
           <AppSkeleton fullPage={false} label={t("common.loading")} />
         ) : teams.error ? (
