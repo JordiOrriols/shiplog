@@ -70,6 +70,24 @@ async function addFeature() {
   );
 }
 describe("shared release configuration", () => {
+  it.each([null, "draft", "released"] as const)(
+    "orders fields as version, status, title and public notes (%s)",
+    (status) => {
+      show(true, status);
+      const fields = [
+        screen.getByLabelText("Version"),
+        screen.getByLabelText("Release status"),
+        screen.getByLabelText("Title", { exact: true }),
+        screen.getByLabelText("Public release notes"),
+      ];
+      for (let index = 1; index < fields.length; index++) {
+        expect(fields[index - 1]!.compareDocumentPosition(fields[index]!)).toBe(
+          Node.DOCUMENT_POSITION_FOLLOWING,
+        );
+      }
+      expect(fields[1]).toBeEnabled();
+    },
+  );
   it("shows details and changes together with one footer save and no QA/tab surface", async () => {
     show();
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();

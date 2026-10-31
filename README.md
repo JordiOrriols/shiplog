@@ -21,6 +21,7 @@ Release history and communication on the same Supabase project and shared
   SemVer. Version edits exclude the edited release from the comparison.
 - Creation and editing share one release modal with version/title, release
   notes, status and linked Planner features together, without duplicate tabs.
+  Fields appear in order: version, status, title, public notes, then feature links.
   The footer saves all configuration atomically; failed saves retain input
   and staged feature links, without creating partial releases.
 - Version/title and feature links are editable in Draft status. Changes links
@@ -38,10 +39,13 @@ Release history and communication on the same Supabase project and shared
   rather than submission buttons inside the content. Application tags reuse
   Planner's estimation-card styling.
 - Owner-managed application checklist templates, snapshotted for each new release.
+  Items have only a title and description; every item is required for QA completion.
+  The existing API category is retained for compatibility (new items use `QA`),
+  and saving a template marks all its items mandatory, including legacy optional items.
   Later template edits never alter existing release checklists.
 - A **QA** icon beside the approval thumbs opens its own checklist modal.
   It is gray for empty or incomplete checklists, and green only after every
-  item (including optional items) is completed. Owners/editors can check or
+  item (including legacy optional items) is completed. Owners/editors can check or
   uncheck items in any lifecycle; viewers can open it read-only.
 - Each release card has thumbs-up/down approval buttons and right-aligned member
   decision badges showing only responding members' names with leading icons:

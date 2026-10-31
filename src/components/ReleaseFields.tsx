@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Input, Label } from "@jordiorriols/ui";
+import { Input, Label, SelectField } from "@jordiorriols/ui";
 import type { Release } from "@/lib/contracts";
 
 export function Field({
@@ -69,6 +69,20 @@ export function ReleaseFields({
         <p className="text-xs text-muted-foreground">
           {t("releases.autoType")}
         </p>
+      </fieldset>
+      <div className="space-y-1">
+        <Label htmlFor="release-status">{t("simple.status")}</Label>
+        <SelectField
+          id="release-status"
+          name="status"
+          defaultValue={initial?.status ?? "draft"}
+          options={["draft", "qa", "released"].map((status) => ({
+            value: status,
+            label: t(`statuses.${status}`),
+          }))}
+        />
+      </div>
+      <fieldset disabled={!draftEditable} className="space-y-4">
         <Field
           name="title"
           label={t("common.title")}

@@ -142,18 +142,6 @@ export default function ReleaseDetails({
             {...(release ? { initial: release } : {})}
             draftEditable={editable}
           />
-          <div className="space-y-1">
-            <Label htmlFor="release-status">{t("simple.status")}</Label>
-            <SelectField
-              id="release-status"
-              name="status"
-              defaultValue={release?.status ?? "draft"}
-              options={["draft", "qa", "released"].map((status) => ({
-                value: status,
-                label: t(`statuses.${status}`),
-              }))}
-            />
-          </div>
         </fieldset>
         {release && !isEditableDraft(release) && (
           <p className="text-xs text-muted-foreground">

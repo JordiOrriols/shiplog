@@ -92,12 +92,12 @@ describe("checklist template editor", () => {
       screen.queryByText("Revised review", { exact: true }),
     ).not.toBeInTheDocument();
   });
-  it("saves optional, categorized items only after the template save", async () => {
+  it("saves required items with only title and description after the template save", async () => {
     state.checklistTemplate.mockResolvedValue({ revision: 0, items: [] });
     state.saveChecklistTemplate.mockImplementation(async () => {
       state.checklistTemplate.mockResolvedValue({
         revision: 1,
-        items: [{ ...item, mandatory: false }],
+        items: [{ ...item, category: "QA" }],
       });
     });
     show();
@@ -111,16 +111,15 @@ describe("checklist template editor", () => {
       screen.getByLabelText("Title", { exact: true }),
       item.title,
     );
-    await userEvent.type(
-      screen.getByLabelText("Category", { exact: true }),
-      item.category,
-    );
+    expect(
+      screen.queryByLabelText("Category", { exact: true }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: "Mandatory", exact: true }),
+    ).not.toBeInTheDocument();
     await userEvent.type(
       screen.getByLabelText("Description", { exact: true }),
       item.description,
-    );
-    await userEvent.click(
-      screen.getByRole("checkbox", { name: "Mandatory", exact: true }),
     );
     await userEvent.click(
       screen.getByRole("button", { name: "Apply item", exact: true }),
@@ -134,7 +133,25 @@ describe("checklist template editor", () => {
     );
     expect(state.saveChecklistTemplate).toHaveBeenCalledWith(application.id, {
       revision: 0,
+      items: [{ ...item, category: "QA" }],
+    });
+  });
+  it("makes legacy optional items required on save without exposing category or requirement metadata", async () => {
+    state.checklistTemplate.mockResolvedValue({
+      revision: 1,
       items: [{ ...item, mandatory: false }],
+    });
+    show();
+    expect(await screen.findByText(item.title, { exact: true })).toBeVisible();
+    expect(
+      screen.queryByText(/Development|Optional|Mandatory/),
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save template", exact: true }),
+    );
+    expect(state.saveChecklistTemplate).toHaveBeenCalledWith(application.id, {
+      revision: 1,
+      items: [item],
     });
   });
 });

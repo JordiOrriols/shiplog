@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppSkeleton, Button, Checkbox, Modal } from "@jordiorriols/ui";
+import { AppSkeleton, Button, Modal } from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { localizeError } from "@/lib/localizeError";
@@ -106,7 +106,9 @@ function TemplateEditor({
 }) {
   const { t } = useTranslation();
   const action = useAsyncAction();
-  const [items, setItems] = useState(initial.items);
+  const [items, setItems] = useState(() =>
+    initial.items.map((item) => ({ ...item, mandatory: true })),
+  );
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const item = typeof editing === "number" ? items[editing] : undefined;
   return (
@@ -144,14 +146,6 @@ function TemplateEditor({
               key={index}
               className="rounded-lg border border-border p-3 space-y-2"
             >
-              <p className="text-xs text-muted-foreground">
-                {entry.category} ·{" "}
-                {t(
-                  entry.mandatory
-                    ? "readiness.mandatory"
-                    : "readiness.optional",
-                )}
-              </p>
               <p className="font-medium break-words">{entry.title}</p>
               <p className="text-sm whitespace-pre-wrap break-words">
                 {entry.description}
@@ -196,9 +190,9 @@ function TemplateEditor({
               const form = new FormData(event.currentTarget);
               const updated = {
                 title: String(form.get("item_title") ?? ""),
-                category: String(form.get("item_category") ?? ""),
+                category: item?.category ?? "QA",
                 description: String(form.get("item_description") ?? ""),
-                mandatory: form.get("mandatory") === "on",
+                mandatory: true,
               };
               setItems(
                 editing === "new"
@@ -216,25 +210,12 @@ function TemplateEditor({
               maxLength={160}
               initial={item?.title ?? ""}
             />
-            <Field
-              name="item_category"
-              label={t("changes.category")}
-              maxLength={80}
-              initial={item?.category ?? ""}
-            />
             <TextField
               name="item_description"
               label={t("common.description")}
               maxLength={4000}
               initial={item?.description ?? ""}
             />
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox
-                name="mandatory"
-                defaultChecked={item?.mandatory ?? true}
-              />
-              {t("readiness.mandatory")}
-            </label>
           </form>
         ) : (
           <Button
