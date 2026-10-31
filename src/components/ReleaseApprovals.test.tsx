@@ -48,14 +48,26 @@ beforeEach(() => {
   state.decisions.mockResolvedValue(decisions);
 });
 describe("individual approvals", () => {
-  it("shows each member's approval, disapproval or pending state and permits a viewer's own vote", async () => {
+  it("shows only responding members' names with colored icons and permits a viewer's own vote", async () => {
     state.decideRelease.mockResolvedValue(undefined);
     show();
-    expect(await screen.findByText("Approved", { exact: true })).toBeVisible();
-    expect(screen.getByText("Disapproved", { exact: true })).toBeVisible();
+    expect(await screen.findByText("Ada Lovelace")).toBeVisible();
     expect(
-      within(screen.getByRole("list")).getByText("Pending", { exact: true }),
-    ).toBeVisible();
+      screen.getByRole("listitem", { name: "Ada Lovelace: Approved" }),
+    ).toHaveTextContent(/^Ada Lovelace$/);
+    expect(
+      screen.getByRole("listitem", { name: "Ada Lovelace: Approved" }),
+    ).toHaveClass("text-green-700");
+    expect(
+      screen.getByRole("listitem", { name: "Grace Hopper: Disapproved" }),
+    ).toHaveTextContent(/^Grace Hopper$/);
+    expect(
+      screen.getByRole("listitem", { name: "Grace Hopper: Disapproved" }),
+    ).toHaveClass("text-destructive");
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(
+      within(screen.getByRole("list")).queryByText("Viewer"),
+    ).not.toBeInTheDocument();
     const approve = screen.getByRole("button", {
       name: "Approve",
       exact: true,
@@ -94,8 +106,8 @@ describe("individual approvals", () => {
       screen.getByRole("button", { name: "Approve", exact: true }),
     ).toHaveAttribute("aria-pressed", "false");
     expect(
-      within(screen.getByRole("list")).getByText("Pending", { exact: true }),
-    ).toBeVisible();
+      within(screen.getByRole("list")).queryByText("Viewer"),
+    ).not.toBeInTheDocument();
   });
   it.each([true, false])(
     "colors only the selected thumb (%s)",

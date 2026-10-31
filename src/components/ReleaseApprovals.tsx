@@ -5,6 +5,7 @@ import { AppSkeleton, Button } from "@jordiorriols/ui";
 import { ThumbsUp, ThumbsDown } from "@jordiorriols/ui/icons";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
+import { localizeError } from "@/lib/localizeError";
 
 export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
   const { t } = useTranslation();
@@ -24,7 +25,7 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
   if (query.error)
     return (
       <div role="alert">
-        <p>{query.error.message}</p>
+        <p>{localizeError(query.error.message)}</p>
         <Button onClick={() => void query.refetch()}>
           {t("common.retry")}
         </Button>
@@ -82,33 +83,26 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
         </Button>
       </div>
       <ul className="flex flex-wrap justify-end gap-2">
-        {query.data.map((member) => (
-          <li
-            key={member.user_id}
-            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs ${member.approved === true ? "border-green-600/20 bg-green-600/10 text-green-700 dark:text-green-400" : member.approved === false ? "border-destructive/20 bg-destructive/10 text-destructive" : "border-border bg-muted text-muted-foreground"}`}
-            title={`${member.name}: ${t(member.approved === true ? "simple.approved" : member.approved === false ? "simple.disapproved" : "simple.pending")}`}
-          >
-            <span className="break-all">{member.name}</span>
-            <span className="flex shrink-0 items-center gap-1">
-              {member.approved === true ? (
+        {query.data
+          .filter((member) => member.approved !== null)
+          .map((member) => (
+            <li
+              key={member.user_id}
+              className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs ${member.approved ? "border-green-600/20 bg-green-600/10 text-green-700 dark:text-green-400" : "border-destructive/20 bg-destructive/10 text-destructive"}`}
+              aria-label={`${member.name}: ${t(member.approved ? "simple.approved" : "simple.disapproved")}`}
+            >
+              {member.approved ? (
                 <ThumbsUp className="size-4" aria-hidden="true" />
-              ) : member.approved === false ? (
+              ) : (
                 <ThumbsDown className="size-4" aria-hidden="true" />
-              ) : null}
-              {t(
-                member.approved === true
-                  ? "simple.approved"
-                  : member.approved === false
-                    ? "simple.disapproved"
-                    : "simple.pending",
               )}
-            </span>
-          </li>
-        ))}
+              <span className="break-all">{member.name}</span>
+            </li>
+          ))}
       </ul>
       {action.error && (
         <p role="alert" className="text-sm text-destructive">
-          {action.error}
+          {localizeError(action.error)}
         </p>
       )}
     </section>

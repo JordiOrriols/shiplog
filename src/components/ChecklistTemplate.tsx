@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppSkeleton, Button, Modal } from "@jordiorriols/ui";
+import { AppSkeleton, Button, Checkbox, Modal } from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
+import { localizeError } from "@/lib/localizeError";
 import type {
   Application,
   ChecklistDefinition,
@@ -75,7 +76,7 @@ export default function ChecklistTemplate({
           <AppSkeleton fullPage={false} label={t("common.loading")} />
         ) : query.error ? (
           <div role="alert">
-            <p>{query.error.message}</p>
+            <p>{localizeError(query.error.message)}</p>
             <Button onClick={() => void query.refetch()}>
               {t("common.retry")}
             </Button>
@@ -228,9 +229,8 @@ function TemplateEditor({
               initial={item?.description ?? ""}
             />
             <label className="flex items-center gap-2 text-sm">
-              <input
+              <Checkbox
                 name="mandatory"
-                type="checkbox"
                 defaultChecked={item?.mandatory ?? true}
               />
               {t("readiness.mandatory")}
@@ -250,7 +250,7 @@ function TemplateEditor({
         )}
         {action.error && (
           <p role="alert" className="text-sm text-destructive">
-            {action.error}
+            {localizeError(action.error)}
           </p>
         )}
         <form

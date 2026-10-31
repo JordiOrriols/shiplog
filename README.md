@@ -9,6 +9,9 @@ Release history and communication on the same Supabase project and shared
   login, signup and password recovery through UI.
 - Existing workspace creation, switching and per-app owner/editor/viewer sharing.
 - Editable applications with an optional link to an existing workspace team.
+  Cards use edit, delete and checklist icon actions with shared tooltips and team
+  badges. Owners/editors can delete an application only when it has no releases,
+  after confirmation; the server enforces this and audits deletion.
   A team may manage multiple applications; identifiers and platforms are removed.
   Every application is automatically included when the workspace public catalog
   is enabled; there is no per-application visibility checkbox.
@@ -37,13 +40,16 @@ Release history and communication on the same Supabase project and shared
 - A simple **QA** tab shows passed checks and progress, with completion
   actor/timestamps. Owners/editors can check or uncheck items in any lifecycle.
 - Each release card has thumbs-up/down approval buttons and right-aligned member
-  decision badges. Unselected thumbs are gray; selected approval is green and
+  decision badges showing only responding members' names with leading icons:
+  green approval and red disapproval. Members without a response stay hidden.
+  Unselected thumbs are gray; selected approval is green and
   selected disapproval red. All Shiplog members, including viewers, can decide only
   for themselves. Labels use UI's `getDisplayName`: linked workspace member name,
   account name, then email local part; application-team names take precedence
   when the account belongs to several teams.
 - All form/filter dropdowns use UI's `SelectField`, including workspace sharing
   and anonymous release catalogs, rather than browser-native select popups.
+  Checklist template and QA checkboxes use UI's shared Radix `Checkbox`.
 - Owners/editors manually choose the three release-list tags: **Draft**, **QA**
   and **Released**. QA checks and approvals do not automatically change status;
   the status control appears only on the first release-details tab. There are no
@@ -67,10 +73,18 @@ are intentionally deferred.
 Use Node.js 26 LTS with npm 11.20.0. Run `nvm install && nvm use` to select
 the `.nvmrc` version used by CI and deployment.
 
-Shiplog uses UI `^0.3.22` from GitHub Packages, including the shared Shiplog
+Shiplog uses UI `^0.3.24` from GitHub Packages, including the shared Shiplog
 project registration, workspace sharing and authentication redirects.
 Header, project-menu and login/welcome icons reuse the shared orange Shiplog
 branding through `projectId` and `ProjectIcon`; no local palette is maintained.
+
+The entire interface and authentication are translated into English, Catalan,
+Spanish, French, German and Italian, including private screens, checklist actions,
+approval controls and the public catalog. Regional browser locales resolve to
+their supported base language. Locale tests verify exact key coverage without
+English fallback, interpolation placeholders and literal translation references.
+Known server errors are translated when displayed, including after switching
+language; unexpected diagnostics remain unchanged rather than being hidden.
 The committed lockfile contains registry packages, not local links or archives.
 
 ```sh
@@ -129,6 +143,13 @@ The legacy `name` field remains readable by deployed clients; new clients resolv
 `member_name`, `account_name` and `email` through UI's shared helper. Other-app,
 anonymous and outsider requests remain denied. Both migrations have been tested
 and applied to the shared database with approval.
+
+`20261031003000_shiplog_delete_empty_applications.sql` adds the authorized
+`shiplog_delete_application` RPC. Owners/editors can delete empty applications
+and their checklist templates, with an `application.deleted` audit entry retained
+in the workspace. A row lock and server-side release check protect release
+history, including requests from stale clients. This migration has been tested
+and applied to the shared database with explicit approval.
 
 `20261030200000_shiplog_draft_content.sql` originally added the draft/change RPCs and the
 shared preview projection. It also backfills first-publication timestamps from

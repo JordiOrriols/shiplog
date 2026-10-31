@@ -16,6 +16,7 @@ import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
 import { isEditableDraft, type Release } from "@/lib/contracts";
+import { localizeError } from "@/lib/localizeError";
 import { ReleaseFields, releaseFormInput } from "./ReleaseFields";
 import ReleaseReadiness from "./ReleaseReadiness";
 
@@ -102,7 +103,7 @@ export default function ReleaseDetails({
         </TabsList>
         {action.error && (
           <p role="alert" className="text-sm text-destructive">
-            {action.error}
+            {localizeError(action.error)}
           </p>
         )}
         <TabsContent value="details" forceMount hidden={tab !== "details"}>
@@ -159,7 +160,7 @@ export default function ReleaseDetails({
             <AppSkeleton fullPage={false} label={t("common.loading")} />
           ) : features.error ? (
             <div role="alert">
-              <p>{features.error.message}</p>
+              <p>{localizeError(features.error.message)}</p>
               <Button variant="outline" onClick={() => void features.refetch()}>
                 {t("common.retry")}
               </Button>
@@ -168,7 +169,7 @@ export default function ReleaseDetails({
             <>
               {editable && candidates.error && (
                 <div role="alert">
-                  <p>{candidates.error.message}</p>
+                  <p>{localizeError(candidates.error.message)}</p>
                   <Button
                     variant="outline"
                     onClick={() => void candidates.refetch()}

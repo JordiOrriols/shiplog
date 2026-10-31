@@ -1,4 +1,5 @@
 import React from "react";
+import { localizeError } from "@/lib/localizeError";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -64,7 +65,7 @@ export default function PublicReleases() {
           <AppSkeleton label={t("common.loading")} fullPage={false} />
         ) : query.error ? (
           <div role="alert">
-            <p>{query.error.message}</p>
+            <p>{localizeError(query.error.message)}</p>
             <Button onClick={() => void query.refetch()}>
               {t("common.retry")}
             </Button>

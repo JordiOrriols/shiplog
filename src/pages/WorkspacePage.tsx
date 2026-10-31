@@ -4,17 +4,25 @@ import { Link } from "react-router-dom";
 import {
   AppSkeleton,
   Button,
+  ConfirmDialog,
   EmptyState,
   Label,
   Modal,
   SelectField,
 } from "@jordiorriols/ui";
-import { Plus, Rocket } from "@jordiorriols/ui/icons";
+import {
+  ClipboardCheck,
+  Pencil,
+  Plus,
+  Rocket,
+  Trash2,
+} from "@jordiorriols/ui/icons";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
 import { useWorkspace } from "@/data/WorkspaceProvider";
 import { useData } from "@/data/DataProvider";
 import { type Application } from "@/lib/contracts";
+import { localizeError } from "@/lib/localizeError";
 import ReleaseDetails from "@/components/ReleaseDetails";
 import ChecklistTemplate from "@/components/ChecklistTemplate";
 import ReleaseApprovals from "@/components/ReleaseApprovals";
@@ -37,6 +45,9 @@ export default function WorkspacePage({
   const [detailId, setDetailId] = useState<string | null>(null);
   const [templateApplication, setTemplateApplication] =
     useState<Application | null>(null);
+  const [deletingApplication, setDeletingApplication] =
+    useState<Application | null>(null);
+  const deletion = useAsyncAction();
   const canEdit =
     workspace?.access_level === "owner" || workspace?.access_level === "editor";
   if (query.isPending)
@@ -44,7 +55,7 @@ export default function WorkspacePage({
   if (query.error)
     return (
       <div role="alert">
-        <p>{query.error.message}</p>
+        <p>{localizeError(query.error.message)}</p>
         <Button onClick={() => void query.refetch()}>
           {t("common.retry")}
         </Button>
@@ -117,33 +128,72 @@ export default function WorkspacePage({
             <article key={app.id} className="panel space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <h2 className="text-lg font-semibold">{app.name}</h2>
-                {canEdit && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label={t("applications.editNamed", { name: app.name })}
-                    onClick={() => setEditingApplication(app)}
-                  >
-                    {t("changes.edit")}
-                  </Button>
-                )}
+                <div className="flex items-center gap-1">
+                  {canEdit && (
+                    <>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label={t("applications.editNamed", {
+                          name: app.name,
+                        })}
+                        onClick={() => setEditingApplication(app)}
+                      >
+                        <Pencil className="size-4" aria-hidden="true" />
+                      </Button>
+                      <Button
+                        size="icon-sm"
+                        variant="ghost"
+                        aria-label={t("applications.deleteNamed", {
+                          name: app.name,
+                        })}
+                        tooltip={
+                          releases.some(
+                            (release) => release.application_id === app.id,
+                          )
+                            ? t("applications.hasReleases")
+                            : t("applications.deleteNamed", { name: app.name })
+                        }
+                        disabled={
+                          deletion.busy ||
+                          releases.some(
+                            (release) => release.application_id === app.id,
+                          )
+                        }
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => {
+                          deletion.reset();
+                          setDeletingApplication(app);
+                        }}
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </Button>
+                    </>
+                  )}
+                  {workspace.access_level === "owner" && (
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={t("readiness.templateTitle", {
+                        name: app.name,
+                      })}
+                      onClick={() => setTemplateApplication(app)}
+                    >
+                      <ClipboardCheck className="size-4" aria-hidden="true" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {app.description}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <span
+                className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                data-testid="application-team"
+              >
                 {query.data.teams.find((team) => team.id === app.team_id)
                   ?.name ?? t("applications.noTeam")}
-              </p>
-              {workspace.access_level === "owner" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setTemplateApplication(app)}
-                >
-                  {t("readiness.template")}
-                </Button>
-              )}
+              </span>
             </article>
           ))}
           {!applications.length && (
@@ -245,6 +295,35 @@ export default function WorkspacePage({
           onClose={() => setDetailId(null)}
         />
       )}
+      {deletion.error && (
+        <p role="alert" className="text-sm text-destructive">
+          {localizeError(deletion.error)}
+        </p>
+      )}
+      {deletingApplication && (
+        <ConfirmDialog
+          isOpen
+          title={t("applications.deleteNamed", {
+            name: deletingApplication.name,
+          })}
+          description={t("applications.deleteConfirm", {
+            name: deletingApplication.name,
+          })}
+          confirmLabel={t("common.delete")}
+          cancelLabel={t("common.close")}
+          onCancel={() => {
+            if (!deletion.busy) setDeletingApplication(null);
+          }}
+          onConfirm={() => {
+            if (deletion.busy) return;
+            void deletion.run(async () => {
+              await repository.deleteApplication(deletingApplication.id);
+              await query.refresh();
+              setDeletingApplication(null);
+            });
+          }}
+        />
+      )}
       {templateApplication && (
         <ChecklistTemplate
           application={templateApplication}
@@ -307,7 +386,7 @@ function CreateForm({ onClose }: { onClose: () => void }) {
         </>
         {action.error && (
           <p role="alert" className="text-destructive">
-            {action.error}
+            {localizeError(action.error)}
           </p>
         )}
       </form>

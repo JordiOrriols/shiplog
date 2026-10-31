@@ -26,6 +26,7 @@ import {
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { useWorkspace } from "@/data/WorkspaceProvider";
+import { localizeError } from "@/lib/localizeError";
 
 const sections = [
   { path: "/", key: "overview", icon: LayoutDashboard },
@@ -113,12 +114,12 @@ export default function AppLayout() {
       <AppMain className="w-full flex-1">
         {action.error && (
           <p role="alert" className="text-destructive">
-            {action.error}
+            {localizeError(action.error)}
           </p>
         )}
         {error ? (
           <div role="alert" className="space-y-3">
-            <p>{error}</p>
+            <p>{localizeError(error)}</p>
             <Button onClick={() => void refresh()}>{t("common.retry")}</Button>
           </div>
         ) : loading ? (
