@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Input, Label, SelectField } from "@jordiorriols/ui";
+import { FormField, Input, SelectField, Textarea } from "@jordiorriols/ui";
 import type { Release } from "@/lib/contracts";
 
 export function Field({
@@ -16,10 +16,17 @@ export function Field({
   pattern?: string;
 }) {
   return (
-    <div className="space-y-1">
-      <Label htmlFor={name}>{label}</Label>
-      <Input id={name} name={name} required defaultValue={initial} {...props} />
-    </div>
+    <FormField id={name} label={label} className="space-y-1">
+      {(field) => (
+        <Input
+          {...field}
+          name={name}
+          required
+          defaultValue={initial}
+          {...props}
+        />
+      )}
+    </FormField>
   );
 }
 export function TextField({
@@ -34,16 +41,16 @@ export function TextField({
   maxLength: number;
 }) {
   return (
-    <div className="space-y-1">
-      <Label htmlFor={name}>{label}</Label>
-      <textarea
-        className="field min-h-24"
-        id={name}
-        name={name}
-        defaultValue={initial}
-        maxLength={maxLength}
-      />
-    </div>
+    <FormField id={name} label={label} className="space-y-1">
+      {(field) => (
+        <Textarea
+          {...field}
+          name={name}
+          defaultValue={initial}
+          maxLength={maxLength}
+        />
+      )}
+    </FormField>
   );
 }
 export function ReleaseFields({
@@ -70,18 +77,23 @@ export function ReleaseFields({
           {t("releases.autoType")}
         </p>
       </fieldset>
-      <div className="space-y-1">
-        <Label htmlFor="release-status">{t("simple.status")}</Label>
-        <SelectField
-          id="release-status"
-          name="status"
-          defaultValue={initial?.status ?? "draft"}
-          options={["draft", "qa", "released"].map((status) => ({
-            value: status,
-            label: t(`statuses.${status}`),
-          }))}
-        />
-      </div>
+      <FormField
+        id="release-status"
+        label={t("simple.status")}
+        className="space-y-1"
+      >
+        {(field) => (
+          <SelectField
+            {...field}
+            name="status"
+            defaultValue={initial?.status ?? "draft"}
+            options={["draft", "qa", "released"].map((status) => ({
+              value: status,
+              label: t(`statuses.${status}`),
+            }))}
+          />
+        )}
+      </FormField>
       <fieldset disabled={!draftEditable} className="space-y-4">
         <Field
           name="title"

@@ -6,6 +6,8 @@ Release history and communication on the same Supabase project and shared
 ## Current vertical slice
 Application and checklist modals use the shared UI modal's single content scroll
 region, keeping footer actions visible without nested vertical scrollbars.
+Field adapters reuse UI's `FormField`, `Input` and `Textarea` for applications,
+release notes and checklist editing, preserving native constraints and FormData.
 
 - Shared Supabase accounts, production cross-subdomain sessions, email/GitHub
   login, signup and password recovery through UI.
