@@ -10,6 +10,8 @@ Field adapters reuse UI's `FormField`, `Input` and `Textarea` for applications,
 release notes and checklist editing, preserving native constraints and FormData.
 Workspace, application and QA/template query failures use UI's `ErrorState`
 with the existing localized error mapping and query retry actions.
+The authenticated frame reuses published UI `^0.3.29` `AppShell`, retaining the
+working flex footer layout, app-owned navigation and public-sharing controls.
 
 - Shared Supabase accounts, production cross-subdomain sessions, email/GitHub
   login, signup and password recovery through UI.
@@ -46,6 +48,8 @@ with the existing localized error mapping and query retry actions.
   Planner's estimation-card styling.
 - Owner-managed application checklist templates, snapshotted for each new release.
   Items have only a title and description; every item is required for QA completion.
+  Edit/delete Pencil/Trash icon actions sit at the top-right of each checklist
+  item and reuse UI Button's localized hover/focus tooltips (not text buttons).
   The existing API category is retained for compatibility (new items use `QA`),
   and saving a template marks all its items mandatory, including legacy optional items.
   Later template edits never alter existing release checklists.

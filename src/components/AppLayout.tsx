@@ -2,16 +2,12 @@ import React, { useMemo } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  AppHeader,
-  AppMain,
-  AppPage,
+  AppShell,
   AppNavigation,
   AppNavigationItem,
-  AppFooter,
   AppSkeleton,
   EmptyState,
   ErrorState,
-  LanguageSelector,
   WorkspaceBar,
   getWorkspaceLabels,
   type WorkspaceSharingConfig,
@@ -21,7 +17,6 @@ import {
   Boxes,
   History,
   FolderOpen,
-  Rocket,
 } from "@jordiorriols/ui/icons";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
@@ -57,28 +52,26 @@ export default function AppLayout() {
     [repository, workspaceId, user?.id, t],
   );
   return (
-    <AppPage className="flex min-h-screen flex-col">
-      <AppHeader
-        icon={<Rocket />}
-        title={t("app.name")}
-        subtitle={t("app.subtitle")}
-        projectId="shiplog"
-        projectSwitcherLabel={t("app.switchProject")}
-        actions={
-          <LanguageSelector
-            value={i18n.language}
-            label={t("app.language")}
-            onValueChange={(language) => void i18n.changeLanguage(language)}
-          />
-        }
-        accountAction={{
+    <AppShell
+      projectId="shiplog"
+      footer={{ text: t("app.footer") }}
+      header={{
+        title: t("app.name"),
+        subtitle: t("app.subtitle"),
+        projectSwitcherLabel: t("app.switchProject"),
+        language: {
+          value: i18n.language,
+          label: t("app.language"),
+          onValueChange: (language) => void i18n.changeLanguage(language),
+        },
+        accountAction: {
           type: "signOut",
           label: t("auth.signOut"),
           title: user?.email ?? "",
           disabled: action.busy,
           onClick: () => void action.run(signOut),
-        }}
-        navigation={
+        },
+        navigation: (
           <AppNavigation
             label={t("app.pages")}
             actions={
@@ -109,33 +102,27 @@ export default function AppLayout() {
               </AppNavigationItem>
             ))}
           </AppNavigation>
-        }
-      />
-      <AppMain className="w-full flex-1">
-        {action.error && <ErrorState message={localizeError(action.error)} />}
-        {error ? (
-          <ErrorState
-            message={localizeError(error)}
-            onRetry={() => void refresh()}
-            retryLabel={t("common.retry")}
-          />
-        ) : loading ? (
-          <AppSkeleton label={t("app.loading")} />
-        ) : workspace ? (
-          <Outlet key={workspace.id} />
-        ) : (
-          <EmptyState
-            icon={<FolderOpen />}
-            title={t("workspace.empty.title")}
-            description={t("workspace.empty.description")}
-          />
-        )}
-      </AppMain>
-      <AppFooter
-        projectId="shiplog"
-        language={i18n.language}
-        text={t("app.footer")}
-      />
-    </AppPage>
+        ),
+      }}
+    >
+      {action.error && <ErrorState message={localizeError(action.error)} />}
+      {error ? (
+        <ErrorState
+          message={localizeError(error)}
+          onRetry={() => void refresh()}
+          retryLabel={t("common.retry")}
+        />
+      ) : loading ? (
+        <AppSkeleton label={t("app.loading")} />
+      ) : workspace ? (
+        <Outlet key={workspace.id} />
+      ) : (
+        <EmptyState
+          icon={<FolderOpen />}
+          title={t("workspace.empty.title")}
+          description={t("workspace.empty.description")}
+        />
+      )}
+    </AppShell>
   );
 }
