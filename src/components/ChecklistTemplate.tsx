@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppSkeleton, Button, ErrorState, Modal } from "@jordiorriols/ui";
+import { Pencil, Trash2 } from "@jordiorriols/ui/icons";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { localizeError } from "@/lib/localizeError";
@@ -145,37 +146,44 @@ function TemplateEditor({
               key={index}
               className="rounded-lg border border-border p-3 space-y-2"
             >
-              <p className="font-medium break-words">{entry.title}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="min-w-0 font-medium break-words">{entry.title}</p>
+                <div className="flex shrink-0 gap-1">
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="ghost"
+                    disabled={action.busy}
+                    aria-label={t("readiness.editItem", { title: entry.title })}
+                    onClick={() => {
+                      onDirty();
+                      setEditing(index);
+                    }}
+                  >
+                    <Pencil className="size-4" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon-sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    disabled={action.busy}
+                    aria-label={t("readiness.removeItem", {
+                      title: entry.title,
+                    })}
+                    onClick={() => {
+                      onDirty();
+                      setItems(items.filter((_, n) => n !== index));
+                      setEditing(null);
+                    }}
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
+                  </Button>
+                </div>
+              </div>
               <p className="text-sm whitespace-pre-wrap break-words">
                 {entry.description}
               </p>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={action.busy}
-                  aria-label={t("readiness.editItem", { title: entry.title })}
-                  onClick={() => {
-                    onDirty();
-                    setEditing(index);
-                  }}
-                >
-                  {t("changes.edit")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={action.busy}
-                  aria-label={t("readiness.removeItem", { title: entry.title })}
-                  onClick={() => {
-                    onDirty();
-                    setItems(items.filter((_, n) => n !== index));
-                    setEditing(null);
-                  }}
-                >
-                  {t("common.delete")}
-                </Button>
-              </div>
             </li>
           ))}
         </ol>

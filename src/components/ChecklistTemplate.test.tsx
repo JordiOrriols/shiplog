@@ -45,6 +45,41 @@ beforeEach(() => {
   state.checklistTemplate.mockResolvedValue({ revision: 1, items: [item] });
 });
 describe("checklist template editor", () => {
+  it("uses top-right shared icon actions with tooltips and stages deletion until save", async () => {
+    show();
+    const edit = await screen.findByRole("button", {
+      name: "Edit checklist item Review",
+      exact: true,
+    });
+    const remove = screen.getByRole("button", {
+      name: "Remove checklist item Review",
+      exact: true,
+    });
+    expect(edit).toHaveTextContent("");
+    expect(remove).toHaveTextContent("");
+    expect(edit.querySelector(".lucide-pencil")).toBeInTheDocument();
+    expect(remove.querySelector(".lucide-trash-2")).toBeInTheDocument();
+    expect(edit.parentElement?.parentElement).toHaveClass(
+      "justify-between",
+      "items-start",
+    );
+    await userEvent.hover(edit);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Edit checklist item Review",
+    );
+    await userEvent.click(remove);
+    expect(
+      screen.queryByText(item.title, { exact: true }),
+    ).not.toBeInTheDocument();
+    expect(state.saveChecklistTemplate).not.toHaveBeenCalled();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Save template", exact: true }),
+    );
+    expect(state.saveChecklistTemplate).toHaveBeenCalledWith(application.id, {
+      revision: 1,
+      items: [],
+    });
+  });
   it("preserves edits on failed saves and requires explicitly reloading conflicting templates", async () => {
     state.saveChecklistTemplate.mockRejectedValue(
       new Error("Checklist template changed. Reload before saving."),
