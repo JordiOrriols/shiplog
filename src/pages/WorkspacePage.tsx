@@ -6,8 +6,6 @@ import {
   Button,
   ConfirmDialog,
   EmptyState,
-  Label,
-  Modal,
   SelectField,
 } from "@jordiorriols/ui";
 import {
@@ -27,7 +25,7 @@ import ReleaseDetails from "@/components/ReleaseDetails";
 import ChecklistTemplate from "@/components/ChecklistTemplate";
 import ReleaseApprovals from "@/components/ReleaseApprovals";
 import ApplicationForm from "@/components/ApplicationForm";
-import { ReleaseFields, releaseFormInput } from "@/components/ReleaseFields";
+import ReleaseQA from "@/components/ReleaseQA";
 
 export default function WorkspacePage({
   section,
@@ -257,7 +255,10 @@ export default function WorkspacePage({
                       {date(release.created_at)}
                     </p>
                   </div>
-                  <ReleaseApprovals releaseId={release.id} />
+                  <ReleaseApprovals
+                    releaseId={release.id}
+                    qa={<ReleaseQA release={release} canEdit={canEdit} />}
+                  />
                 </div>
               </article>
             ),
@@ -285,7 +286,7 @@ export default function WorkspacePage({
         />
       )}
       {open && section !== "applications" && (
-        <CreateForm onClose={() => setOpen(false)} />
+        <ReleaseDetails canEdit={canEdit} onClose={() => setOpen(false)} />
       )}
       {detail && (
         <ReleaseDetails
@@ -331,65 +332,5 @@ export default function WorkspacePage({
         />
       )}
     </div>
-  );
-}
-
-function CreateForm({ onClose }: { onClose: () => void }) {
-  const { t } = useTranslation();
-  const { workspace } = useWorkspace();
-  const { repository } = useData();
-  const query = useWorkspaceData();
-  const action = useAsyncAction();
-  const applications = query.data?.applications ?? [];
-  return (
-    <Modal
-      isOpen
-      title={t("releases.new")}
-      description={t("releases.description")}
-      onOpenChange={(value) => {
-        if (!value && !action.busy) onClose();
-      }}
-      closeLabel={t("common.close")}
-      footer={
-        <Button type="submit" form="release-create-form" disabled={action.busy}>
-          {t("common.save")}
-        </Button>
-      }
-    >
-      <form
-        id="release-create-form"
-        className="space-y-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (action.busy || !repository || !workspace) return;
-          const releaseInput = releaseFormInput(event.currentTarget);
-          void action.run(async () => {
-            await repository.createRelease(releaseInput);
-            await query.refresh();
-            onClose();
-          });
-        }}
-      >
-        <>
-          <Label htmlFor="application_id">{t("common.application")}</Label>
-          <SelectField
-            id="application_id"
-            name="application_id"
-            defaultValue={applications[0]?.id ?? ""}
-            required
-            options={applications.map((app) => ({
-              value: app.id,
-              label: app.name,
-            }))}
-          />
-          <ReleaseFields />
-        </>
-        {action.error && (
-          <p role="alert" className="text-destructive">
-            {localizeError(action.error)}
-          </p>
-        )}
-      </form>
-    </Modal>
   );
 }

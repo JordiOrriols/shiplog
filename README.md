@@ -19,8 +19,10 @@ Release history and communication on the same Supabase project and shared
   inferred against the highest existing SemVer in the application, not insertion
   order (initial baseline `0.0.0`). Prerelease precedence and build metadata follow
   SemVer. Version edits exclude the edited release from the comparison.
-- Release modals have **Details**, **Changes** and **QA** tabs. Details contains
-  version/title, release notes and status, saved together from the modal footer.
+- Creation and editing share one release modal with version/title, release
+  notes, status and linked Planner features together, without duplicate tabs.
+  The footer saves all configuration atomically; failed saves retain input
+  and staged feature links, without creating partial releases.
 - Version/title and feature links are editable in Draft status. Changes links
   multiple existing Planner features from the same workspace; both Shiplog edit
   access and Planner access are required. Detailed change descriptions belong in
@@ -37,8 +39,10 @@ Release history and communication on the same Supabase project and shared
   Planner's estimation-card styling.
 - Owner-managed application checklist templates, snapshotted for each new release.
   Later template edits never alter existing release checklists.
-- A simple **QA** tab shows passed checks and progress, with completion
-  actor/timestamps. Owners/editors can check or uncheck items in any lifecycle.
+- A **QA** icon beside the approval thumbs opens its own checklist modal.
+  It is gray for empty or incomplete checklists, and green only after every
+  item (including optional items) is completed. Owners/editors can check or
+  uncheck items in any lifecycle; viewers can open it read-only.
 - Each release card has thumbs-up/down approval buttons and right-aligned member
   decision badges showing only responding members' names with leading icons:
   green approval and red disapproval. Members without a response stay hidden.
@@ -52,7 +56,7 @@ Release history and communication on the same Supabase project and shared
   Checklist template and QA checkboxes use UI's shared Radix `Checkbox`.
 - Owners/editors manually choose the three release-list tags: **Draft**, **QA**
   and **Released**. QA checks and approvals do not automatically change status;
-  the status control appears only on the first release-details tab. There are no
+  the status control appears only in the release-configuration modal. There are no
   aggregate readiness gates, deployment records, publication actions or preview tab.
 - **One revocable public catalog URL per workspace**, listing all
   applications with a URL-backed application filter. Individual release URLs

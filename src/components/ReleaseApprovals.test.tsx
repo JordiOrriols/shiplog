@@ -33,13 +33,13 @@ const decisions = [
     decided_at: null,
   },
 ];
-function show() {
+function show(qa?: React.ReactNode) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   render(
     <QueryClientProvider client={client}>
-      <ReleaseApprovals releaseId="release" />
+      <ReleaseApprovals releaseId="release" qa={qa} />
     </QueryClientProvider>,
   );
 }
@@ -48,6 +48,19 @@ beforeEach(() => {
   state.decisions.mockResolvedValue(decisions);
 });
 describe("individual approvals", () => {
+  it("keeps the independent QA action available when approvals cannot load", async () => {
+    state.decisions.mockRejectedValue(new Error("Cannot load approvals"));
+    show(<button>QA</button>);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Cannot load approvals",
+    );
+    expect(
+      screen.getByRole("button", { name: "QA", exact: true }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Approve", exact: true }),
+    ).toBeDisabled();
+  });
   it("shows only responding members' names with colored icons and permits a viewer's own vote", async () => {
     state.decideRelease.mockResolvedValue(undefined);
     show();
@@ -96,6 +109,7 @@ describe("individual approvals", () => {
   it("does not show a successful vote on server failure", async () => {
     state.decideRelease.mockRejectedValue(new Error("Cannot save decision"));
     show();
+    await screen.findByText("Ada Lovelace");
     await userEvent.click(
       await screen.findByRole("button", { name: "Approve", exact: true }),
     );
@@ -118,6 +132,7 @@ describe("individual approvals", () => {
         ),
       );
       show();
+      await screen.findByText("Ada Lovelace");
       const approve = await screen.findByRole("button", {
         name: "Approve",
         exact: true,

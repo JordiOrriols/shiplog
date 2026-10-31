@@ -7,7 +7,13 @@ import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { localizeError } from "@/lib/localizeError";
 
-export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
+export default function ReleaseApprovals({
+  releaseId,
+  qa,
+}: {
+  releaseId: string;
+  qa?: React.ReactNode;
+}) {
   const { t } = useTranslation();
   const { repository, user } = useData();
   const client = useQueryClient();
@@ -20,18 +26,7 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
       return repository.decisions(releaseId);
     },
   });
-  if (query.isPending)
-    return <AppSkeleton fullPage={false} label={t("common.loading")} />;
-  if (query.error)
-    return (
-      <div role="alert">
-        <p>{localizeError(query.error.message)}</p>
-        <Button onClick={() => void query.refetch()}>
-          {t("common.retry")}
-        </Button>
-      </div>
-    );
-  const own = query.data.find((member) => member.user_id === user?.id);
+  const own = query.data?.find((member) => member.user_id === user?.id);
   const decide = (approved: boolean) => {
     if (!repository || action.busy) return;
     void action.run(async () => {
@@ -55,7 +50,7 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
           size="icon-sm"
           aria-label={t("simple.approve")}
           aria-pressed={own?.approved === true}
-          disabled={action.busy}
+          disabled={action.busy || !query.isSuccess}
           onClick={() => decide(true)}
           className={
             own?.approved === true
@@ -71,7 +66,7 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
           size="icon-sm"
           aria-label={t("simple.disapprove")}
           aria-pressed={own?.approved === false}
-          disabled={action.busy}
+          disabled={action.busy || !query.isSuccess}
           onClick={() => decide(false)}
           className={
             own?.approved === false
@@ -81,10 +76,22 @@ export default function ReleaseApprovals({ releaseId }: { releaseId: string }) {
         >
           <ThumbsDown className="size-4" aria-hidden="true" />
         </Button>
+        {qa}
       </div>
+      {query.isPending && (
+        <AppSkeleton fullPage={false} label={t("common.loading")} />
+      )}
+      {query.error && (
+        <div role="alert">
+          <p>{localizeError(query.error.message)}</p>
+          <Button onClick={() => void query.refetch()}>
+            {t("common.retry")}
+          </Button>
+        </div>
+      )}
       <ul className="flex flex-wrap justify-end gap-2">
         {query.data
-          .filter((member) => member.approved !== null)
+          ?.filter((member) => member.approved !== null)
           .map((member) => (
             <li
               key={member.user_id}
