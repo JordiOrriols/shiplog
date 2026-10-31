@@ -6,6 +6,7 @@ import {
   Button,
   ConfirmDialog,
   EmptyState,
+  ErrorState,
   SelectField,
 } from "@jordiorriols/ui";
 import {
@@ -52,12 +53,11 @@ export default function WorkspacePage({
     return <AppSkeleton label={t("app.loading")} fullPage={false} />;
   if (query.error)
     return (
-      <div role="alert">
-        <p>{localizeError(query.error.message)}</p>
-        <Button onClick={() => void query.refetch()}>
-          {t("common.retry")}
-        </Button>
-      </div>
+      <ErrorState
+        message={localizeError(query.error.message)}
+        onRetry={() => void query.refetch()}
+        retryLabel={t("common.retry")}
+      />
     );
   if (!workspace || !repository || !query.data) return null;
   const { applications, releases } = query.data;
@@ -296,11 +296,7 @@ export default function WorkspacePage({
           onClose={() => setDetailId(null)}
         />
       )}
-      {deletion.error && (
-        <p role="alert" className="text-sm text-destructive">
-          {localizeError(deletion.error)}
-        </p>
-      )}
+      {deletion.error && <ErrorState message={localizeError(deletion.error)} />}
       {deletingApplication && (
         <ConfirmDialog
           isOpen

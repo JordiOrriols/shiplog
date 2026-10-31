@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppSkeleton, Button, Modal } from "@jordiorriols/ui";
+import { AppSkeleton, Button, ErrorState, Modal } from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { localizeError } from "@/lib/localizeError";
@@ -75,12 +75,11 @@ export default function ChecklistTemplate({
         {query.isPending ? (
           <AppSkeleton fullPage={false} label={t("common.loading")} />
         ) : query.error ? (
-          <div role="alert">
-            <p>{localizeError(query.error.message)}</p>
-            <Button onClick={() => void query.refetch()}>
-              {t("common.retry")}
-            </Button>
-          </div>
+          <ErrorState
+            message={localizeError(query.error.message)}
+            onRetry={() => void query.refetch()}
+            retryLabel={t("common.retry")}
+          />
         ) : null}
       </div>
     </Modal>
