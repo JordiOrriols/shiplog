@@ -4,6 +4,8 @@ Release history and communication on the same Supabase project and shared
 `@jordiorriols/ui` package as Ladders, Planner and Pulse.
 
 ## Current vertical slice
+Application and checklist modals use the shared UI modal's single content scroll
+region, keeping footer actions visible without nested vertical scrollbars.
 
 - Shared Supabase accounts, production cross-subdomain sessions, email/GitHub
   login, signup and password recovery through UI.
