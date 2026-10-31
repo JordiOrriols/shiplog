@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppSkeleton, Button } from "@jordiorriols/ui";
+import { AppSkeleton, Button, Checkbox } from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import type { Release } from "@/lib/contracts";
@@ -57,19 +57,18 @@ export default function ReleaseReadiness({
         {items.map((item) => (
           <li key={item.id} className="py-3 space-y-1">
             <label className="flex items-start gap-3 text-sm font-medium">
-              <input
-                type="checkbox"
-                className="mt-1 accent-green-600"
+              <Checkbox
+                className="mt-1"
                 disabled={!canEdit || action.busy}
                 checked={
                   pending?.id === item.id
                     ? pending.checked
                     : !!item.completed_at
                 }
-                onChange={(event) => {
+                onCheckedChange={(value) => {
                   if (!repository || action.busy) return;
-                  setPending({ id: item.id, checked: event.target.checked });
-                  const checked = event.target.checked;
+                  const checked = value === true;
+                  setPending({ id: item.id, checked });
                   void action.run(async () => {
                     try {
                       await repository.completeChecklistItem(

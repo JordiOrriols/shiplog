@@ -24,6 +24,27 @@ function setup() {
   return { fetch, response, repository: createShiplogRepository(client) };
 }
 describe("Shiplog transport", () => {
+  it("validates application deletion and preserves server guard failures", async () => {
+    const { fetch, response, repository } = setup();
+    expect(() => repository.deleteApplication("invalid")).toThrow();
+    expect(fetch).not.toHaveBeenCalled();
+    const application = "11111111-1111-4111-8111-111111111111";
+    fetch.mockResolvedValueOnce(response(null));
+    await repository.deleteApplication(application);
+    expect(fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining("/rpc/shiplog_delete_application"),
+      expect.objectContaining({ body: JSON.stringify({ application }) }),
+    );
+    fetch.mockResolvedValueOnce(
+      response(
+        { message: "Applications with releases cannot be deleted" },
+        400,
+      ),
+    );
+    await expect(repository.deleteApplication(application)).rejects.toThrow(
+      "Applications with releases cannot be deleted",
+    );
+  });
   it("uses shared member/account/email display-name precedence for approvals", async () => {
     const { fetch, response, repository } = setup();
     const base = {

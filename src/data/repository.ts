@@ -141,6 +141,10 @@ export function createShiplogRepository(client: SupabaseClient) {
         }),
       );
     },
+    deleteApplication: (application: string) =>
+      rpc("shiplog_delete_application", {
+        application: z.string().uuid().parse(application),
+      }),
     createRelease: async (input: unknown) => {
       const parsed = releaseInputSchema.parse(input);
       return releaseSchema.parse(

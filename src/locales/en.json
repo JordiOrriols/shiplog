@@ -51,6 +51,9 @@
   "applications": {
     "edit": "Edit application",
     "editNamed": "Edit {{name}}",
+    "deleteNamed": "Delete {{name}}",
+    "deleteConfirm": "Delete {{name}} and its checklist template? This cannot be undone. Applications with releases cannot be deleted.",
+    "hasReleases": "Applications with releases cannot be deleted.",
     "team": "Team (optional)",
     "noTeam": "No team",
     "description": "The products and services your workspace ships.",
