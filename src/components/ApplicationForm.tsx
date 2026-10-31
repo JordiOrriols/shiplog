@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AppSkeleton,
   Button,
-  Label,
+  FormField,
   Modal,
   SelectField,
 } from "@jordiorriols/ui";
@@ -101,19 +101,22 @@ export default function ApplicationForm({
                 maxLength={4000}
                 initial={application?.description ?? ""}
               />
-              <Label htmlFor="team">{t("applications.team")}</Label>
-              <SelectField
-                id="team"
-                name="team"
-                defaultValue={application?.team_id ?? ""}
-                options={[
-                  { value: "", label: t("applications.noTeam") },
-                  ...teams.data.map((team) => ({
-                    value: team.id,
-                    label: team.name,
-                  })),
-                ]}
-              />
+              <FormField id="team" label={t("applications.team")}>
+                {(field) => (
+                  <SelectField
+                    {...field}
+                    name="team"
+                    defaultValue={application?.team_id ?? ""}
+                    options={[
+                      { value: "", label: t("applications.noTeam") },
+                      ...teams.data.map((team) => ({
+                        value: team.id,
+                        label: team.name,
+                      })),
+                    ]}
+                  />
+                )}
+              </FormField>
             </fieldset>
             {action.error && (
               <p role="alert" className="text-sm text-destructive">
