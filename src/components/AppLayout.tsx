@@ -3,6 +3,8 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   AppShell,
+  AppAccountControls,
+  getDisplayName,
   AppNavigation,
   AppNavigationItem,
   AppSkeleton,
@@ -18,7 +20,7 @@ import {
   History,
   FolderOpen,
 } from "@jordiorriols/ui/icons";
-import { useAsyncAction } from "@jordiorriols/ui/hooks";
+import { useAuthDialogProps } from "./LoginDialog";
 import { useData } from "@/data/DataProvider";
 import { useWorkspace } from "@/data/WorkspaceProvider";
 import { localizeError } from "@/lib/localizeError";
@@ -30,10 +32,10 @@ const sections = [
 ];
 export default function AppLayout() {
   const { t, i18n } = useTranslation();
-  const { user, signOut, workspaceApi, repository } = useData();
+  const { user, authEnabled, authError, workspaceApi, repository } = useData();
   const { workspaces, workspace, select, refresh, loading, error } =
     useWorkspace();
-  const action = useAsyncAction();
+  const auth = useAuthDialogProps();
   const workspaceId = workspace?.id;
   const sharing = useMemo<WorkspaceSharingConfig | undefined>(
     () =>
@@ -62,15 +64,25 @@ export default function AppLayout() {
         language: {
           value: i18n.language,
           label: t("app.language"),
+          className: "inline-flex",
           onValueChange: (language) => void i18n.changeLanguage(language),
         },
-        accountAction: {
-          type: "signOut",
-          label: t("auth.signOut"),
-          title: user?.email ?? "",
-          disabled: action.busy,
-          onClick: () => void action.run(signOut),
-        },
+        actions: (
+          <AppAccountControls
+            {...auth}
+            projectId="shiplog"
+            enabled={authEnabled}
+            signedIn={!!user}
+            authError={authError}
+            signOutLabel={t("auth.signOut")}
+            accountTitle={getDisplayName({
+              accountName:
+                user?.user_metadata?.["full_name"] ??
+                user?.user_metadata?.["name"],
+              email: user?.email ?? "",
+            })}
+          />
+        ),
         navigation: (
           <AppNavigation
             label={t("app.pages")}
@@ -105,7 +117,6 @@ export default function AppLayout() {
         ),
       }}
     >
-      {action.error && <ErrorState message={localizeError(action.error)} />}
       {error ? (
         <ErrorState
           message={localizeError(error)}
