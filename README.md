@@ -10,8 +10,13 @@ Field adapters reuse UI's `FormField`, `Input` and `Textarea` for applications,
 release notes and checklist editing, preserving native constraints and FormData.
 Workspace, application and QA/template query failures use UI's `ErrorState`
 with the existing localized error mapping and query retry actions.
-The authenticated frame reuses published UI `^0.3.29` `AppShell`, retaining the
+The authenticated frame reuses published UI `^0.3.31` `AppShell`, retaining the
 working flex footer layout, app-owned navigation and public-sharing controls.
+Shared `AppAccountControls` owns login/sign-out state and localized auth errors;
+welcome login uses `AuthDialog`. Public catalog and release-detail links use
+`PublicAppShell` with mobile language selection and attribution, without account
+controls or a project menu. Public serialization and private-note redaction are
+unchanged.
 
 - Shared Supabase accounts, production cross-subdomain sessions, email/GitHub
   login, signup and password recovery through UI.
