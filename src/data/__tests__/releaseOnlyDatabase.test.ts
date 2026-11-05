@@ -5,7 +5,7 @@ import { z } from "zod";
 import {
   createMigratedDatabase,
   applyMigrations,
-} from "./support/migratedDatabase";
+} from "@jordiorriols/backend/testing";
 import { applicationSchema, releaseSchema } from "@/lib/contracts";
 import { releaseOnlyCatalogSchema as publicCatalogSchema } from "./support/legacyContracts";
 

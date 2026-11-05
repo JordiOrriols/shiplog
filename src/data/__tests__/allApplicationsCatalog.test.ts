@@ -3,7 +3,7 @@ import { it, expect } from "vitest";
 import {
   createMigratedDatabase,
   applyMigrations,
-} from "./support/migratedDatabase";
+} from "@jordiorriols/backend/testing";
 import { releaseOnlyCatalogSchema as publicCatalogSchema } from "./support/legacyContracts";
 
 it("automatically includes existing and future applications without leaking internal changes or another workspace, and still revokes the catalog", async () => {

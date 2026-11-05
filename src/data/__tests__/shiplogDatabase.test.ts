@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
-import { createMigratedDatabase } from "./support/migratedDatabase";
+import { createMigratedDatabase } from "@jordiorriols/backend/testing";
 import { publicCatalogSchema } from "./support/legacyContracts";
 
 const owner = "11111111-1111-4111-8111-111111111111";

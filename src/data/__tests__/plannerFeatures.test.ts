@@ -4,7 +4,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import {
   createMigratedDatabase,
   applyMigrations,
-} from "./support/migratedDatabase";
+} from "@jordiorriols/backend/testing";
 import { publicCatalogSchema, releaseSchema } from "@/lib/contracts";
 
 const migration = "20261031000000_shiplog_planner_features.sql";
