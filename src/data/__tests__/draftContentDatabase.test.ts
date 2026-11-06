@@ -4,7 +4,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import {
   createMigratedDatabase,
   applyMigrations,
-} from "./support/migratedDatabase";
+} from "@jordiorriols/backend/testing";
 import {
   publicReleaseSchema,
   publicCatalogSchema,

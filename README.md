@@ -133,10 +133,10 @@ once to the shared database with approval. They authorize current-app editor/vie
 while restricting public-link writes to owners. Anonymous, other-app and
 linked-team-only access cannot read the directory.
 
-Migrations preceding `20261030190000_shiplog_core.sql` are the shared project's
-existing history, copied so a clean test database applies the real migrations
-in order without requiring a sibling checkout. They must not be re-applied
-manually against an existing project.
+The migrations, including every Shiplog one, live in the
+[backend](https://github.com/JordiOrriols/backend) repository with the rest of
+the shared schema. Add and apply schema changes there, before deploying a
+Shiplog change that needs them.
 
 The Shiplog migration extends workspace app validation and adds:
 
@@ -225,13 +225,6 @@ visibility audit events and visibility fields in application audit snapshots are
 permanently removed. This migration has been tested and applied to shared
 Supabase with explicit approval.
 
-```sh
-npx supabase link --project-ref <shared-project-ref>
-npx supabase db push --linked --dry-run
-# Review the list and obtain approval before applying shared database changes.
-npx supabase db push --linked
-```
-
 Register `https://shiplog.jordiorriols.cat/?auth_app=shiplog` and
 `http://127.0.0.1:5178/?auth_app=shiplog` in Supabase's authentication redirect
 allow-list. Shared session and callback routing come from UI.
@@ -253,7 +246,11 @@ npm run build
 ```
 
 Database tests use PGlite with the complete shared migration chain and Supabase
-auth-role stand-ins. They test workspace isolation, editor/viewer permissions,
+auth-role stand-ins, both from the `@jordiorriols/backend` dev dependency
+(`npm install -D @jordiorriols/backend@latest` after a backend change). Tests
+that only exercise the database (approval names, application deletion, sharing
+permissions) live in backend; the ones here also check Shiplog's Zod contracts.
+They test workspace isolation, editor/viewer permissions,
 SemVer constraints, default release visibility, catalog projection and revocation.
 Historical foundation/draft/readiness/simplification tests stop before the
 migrations that retire their workflows. The release-only suite applies the full

@@ -4,7 +4,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import {
   createMigratedDatabase,
   applyMigrations,
-} from "./support/migratedDatabase";
+} from "@jordiorriols/backend/testing";
 import { readinessSchema, type Readiness } from "@/lib/contracts";
 
 const owner = "11111111-1111-4111-8111-111111111111";

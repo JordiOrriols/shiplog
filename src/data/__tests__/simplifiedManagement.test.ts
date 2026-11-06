@@ -4,7 +4,7 @@ import type { PGlite } from "@electric-sql/pglite";
 import {
   createMigratedDatabase,
   applyMigrations,
-} from "./support/migratedDatabase";
+} from "@jordiorriols/backend/testing";
 import { applicationSchema } from "@/lib/contracts";
 import { releaseSchema, publicCatalogSchema } from "./support/legacyContracts";
 
