@@ -3,6 +3,13 @@
 Release history and communication on the same Supabase project and shared
 `@jordiorriols/ui` package as Ladders, Planner and Pulse.
 
+UI `^0.3.33` provides the shared create-or-wait `WorkspaceSetup` for accounts
+with no accessible workspace, including automatic invitation checks. The
+workspace menu exposes owner-only confirmed deletion. Backend `delete_workspace`
+rejects content across all five apps and discards empty teams/projects; errors
+are displayed and the directory refreshes only on success. Deploy the backend
+lifecycle migration before enabling these controls.
+
 ## Current vertical slice
 Application and checklist modals use the shared UI modal's single content scroll
 region, keeping footer actions visible without nested vertical scrollbars.

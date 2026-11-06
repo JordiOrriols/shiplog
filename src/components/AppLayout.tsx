@@ -11,6 +11,7 @@ import {
   EmptyState,
   ErrorState,
   WorkspaceBar,
+  WorkspaceSetup,
   getWorkspaceLabels,
   type WorkspaceSharingConfig,
 } from "@jordiorriols/ui";
@@ -99,6 +100,7 @@ export default function AppLayout() {
                     await refresh();
                   }}
                   onSharesChanged={refresh}
+                  onDeleted={refresh}
                   labels={getWorkspaceLabels(i18n.language)}
                   {...(sharing ? { sharing } : {})}
                 />
@@ -127,6 +129,16 @@ export default function AppLayout() {
         <AppSkeleton label={t("app.loading")} />
       ) : workspace ? (
         <Outlet key={workspace.id} />
+      ) : user && workspaceApi ? (
+        <WorkspaceSetup
+          api={workspaceApi}
+          language={i18n.language}
+          onRefresh={refresh}
+          onCreated={async (created) => {
+            select(created.id);
+            await refresh();
+          }}
+        />
       ) : (
         <EmptyState
           icon={<FolderOpen />}
