@@ -71,9 +71,14 @@ export default function PublicReleases() {
       <nav className="flex gap-4">
         <Link to="/">{t("app.name")}</Link>
         {internal && (
-          <Link to={`/workspaces/${workspace}/applications`}>
-            {t("sections.applications")}
-          </Link>
+          <>
+            <Link to={`/workspaces/${workspace}/applications`}>
+              {t("sections.applications")}
+            </Link>
+            <Link to={`/workspaces/${workspace}/audit`}>
+              {t("audit.title")}
+            </Link>
+          </>
         )}
       </nav>
       {directory.error && (

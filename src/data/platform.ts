@@ -34,6 +34,27 @@ const decisionsSchema = z.object({
     }),
   ),
 });
+const auditCursorSchema = z
+  .string()
+  .regex(
+    /^(platform|legacy):[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+  );
+const auditSchema = z.object({
+  events: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        source: z.enum(["platform", "legacy"]),
+        created_at: z.string(),
+        event: z.string(),
+        actor_id: z.string().uuid().nullable(),
+        actor_name: z.string().nullable(),
+        details: z.record(z.unknown()),
+      }),
+    )
+    .max(50),
+  next_cursor: auditCursorSchema.nullable(),
+});
 
 export async function platformRequest(
   path: string,
@@ -62,6 +83,12 @@ export async function platformRequest(
 }
 
 export const platformRepository = {
+  audit: async (workspace: string, cursor?: string) =>
+    auditSchema.parse(
+      await platformRequest(
+        `${workspacePath(workspace)}/audit${cursor === undefined ? "" : `?cursor=${encodeURIComponent(auditCursorSchema.parse(cursor))}`}`,
+      ),
+    ),
   decisions: async (workspace: string, release: string) =>
     decisionsSchema.parse(
       await platformRequest(

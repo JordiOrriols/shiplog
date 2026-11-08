@@ -17,6 +17,7 @@ import {
 import { platformRepository } from "./data/platform";
 import PublicReleases from "./pages/PublicReleases";
 import PlatformApplications from "./pages/PlatformApplications";
+import PlatformAudit from "./pages/PlatformAudit";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -60,12 +61,20 @@ function WorkspaceDirectory() {
                   {workspace.name}
                 </Link>
                 {workspace.role !== "external" && (
-                  <Link
-                    className="ml-4 underline"
-                    to={`/workspaces/${workspace.id}/applications`}
-                  >
-                    {t("sections.applications")}
-                  </Link>
+                  <>
+                    <Link
+                      className="ml-4 underline"
+                      to={`/workspaces/${workspace.id}/applications`}
+                    >
+                      {t("sections.applications")}
+                    </Link>
+                    <Link
+                      className="ml-4 underline"
+                      to={`/workspaces/${workspace.id}/audit`}
+                    >
+                      {t("audit.title")}
+                    </Link>
+                  </>
                 )}
               </li>
             ))}
@@ -83,6 +92,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <Routes>
         <Route index element={<WorkspaceDirectory />} />
+        <Route path="workspaces/:workspace/audit" element={<PlatformAudit />} />
         <Route
           path="workspaces/:workspace/applications"
           element={<PlatformApplications />}

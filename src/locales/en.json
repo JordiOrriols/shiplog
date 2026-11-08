@@ -1,4 +1,13 @@
 {
+  "audit": {
+    "title": "Audit history",
+    "description": "Read-only workspace history. Legacy actors are not linked to platform identities automatically.",
+    "platform": "Platform",
+    "legacy": "Legacy",
+    "legacyActor": "Legacy account (unmapped)",
+    "details": "Event details",
+    "more": "Load more events"
+  },
   "access": {
     "empty": "You do not have access to any Shiplog workspace. Ask an administrator to assign access."
   },

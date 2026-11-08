@@ -2,6 +2,45 @@ import { afterEach, expect, it, vi } from "vitest";
 import { platformRepository } from "./platform";
 
 afterEach(() => vi.unstubAllGlobals());
+it("audit requests validate scoped cursors and the bounded source-tagged response", async () => {
+  const workspace = "11111111-1111-4111-8111-111111111111",
+    id = "22222222-2222-4222-8222-222222222222";
+  const data = {
+    events: [
+      {
+        id,
+        source: "legacy",
+        created_at: "2026-11-08",
+        event: "release.updated",
+        actor_id: id,
+        actor_name: null,
+        details: { before: "old" },
+      },
+    ],
+    next_cursor: `legacy:${id}`,
+  };
+  const fetcher = vi
+    .fn()
+    .mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify(data))),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  expect(await platformRepository.audit(workspace)).toEqual(data);
+  await platformRepository.audit(workspace, data.next_cursor);
+  expect(fetcher.mock.calls[1]?.[0]).toBe(
+    `/api/shiplog/workspaces/${workspace}/audit?cursor=legacy%3A${id}`,
+  );
+  await expect(platformRepository.audit(workspace, "bad")).rejects.toThrow();
+  fetcher.mockImplementation(() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({ ...data, events: Array(51).fill(data.events[0]) }),
+      ),
+    ),
+  );
+  await expect(platformRepository.audit(workspace)).rejects.toThrow();
+  expect(fetcher).toHaveBeenCalledTimes(3);
+});
 it("approval requests only submit the decision and validate reduced identity projections", async () => {
   const workspace = "11111111-1111-4111-8111-111111111111",
     id = "22222222-2222-4222-8222-222222222222";

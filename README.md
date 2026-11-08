@@ -41,8 +41,15 @@ decisions. The directory excludes external/revoked grants without deleting store
 history and projects display names without full emails. Imported legacy approvals
 remain separate and untouched until explicit identity mapping; member-name mapping
 is not inferred from email. Writes audit the verified platform actor.
-Audit history UI is not migrated yet;
-this branch is not a production replacement.
+Internal roles can open `/shiplog/workspaces/:workspace/audit` from the directory,
+applications or releases. The read-only page merges platform and imported legacy
+history with explicit source/actor labels and expandable stored details. It loads
+50 events per page with stable cursor pagination, surfaces errors and denies
+external users. Legacy actor UUIDs are explicitly unmapped, not inferred from
+email or relabeled as Access identities. Audit navigation/copy supports all six
+languages. Primary Shiplog workflows are API-backed, but shared workspace lifecycle,
+explicit identity/member mapping and real Access acceptance remain; this branch
+is not a production replacement.
 No deployment workflow has been changed.
 
 The local Compose stack also has a `shiplog` web profile on

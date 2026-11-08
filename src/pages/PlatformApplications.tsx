@@ -66,6 +66,11 @@ export default function PlatformApplications() {
               {t("sections.releases")}
             </Link>
           )}
+          {internal && (
+            <Link to={`/workspaces/${workspace}/audit`}>
+              {t("audit.title")}
+            </Link>
+          )}
         </nav>
         <h2 className="text-2xl font-semibold">{t("sections.applications")}</h2>
         {directory.isPending || (internal && query.isPending) ? (

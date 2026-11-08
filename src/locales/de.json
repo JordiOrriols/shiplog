@@ -1,4 +1,13 @@
 {
+  "audit": {
+    "title": "Audit-Verlauf",
+    "description": "Schreibgeschützter Verlauf. Alte Konten werden nicht automatisch mit Plattformidentitäten verknüpft.",
+    "platform": "Plattform",
+    "legacy": "Altbestand",
+    "legacyActor": "Altes Konto (nicht verknüpft)",
+    "details": "Ereignisdetails",
+    "more": "Weitere Ereignisse laden"
+  },
   "access": {
     "empty": "Sie haben keinen Zugriff auf einen Shiplog-Arbeitsbereich. Bitten Sie einen Administrator, Ihnen Zugriff zuzuweisen."
   },
