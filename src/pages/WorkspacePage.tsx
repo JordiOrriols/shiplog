@@ -9,13 +9,7 @@ import {
   ErrorState,
   SelectField,
 } from "@jordiorriols/ui";
-import {
-  ClipboardCheck,
-  Pencil,
-  Plus,
-  Rocket,
-  Trash2,
-} from "@jordiorriols/ui/icons";
+import { Plus, Rocket } from "@jordiorriols/ui/icons";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
 import { useWorkspace } from "@/data/WorkspaceProvider";
@@ -27,6 +21,7 @@ import ChecklistTemplate from "@/components/ChecklistTemplate";
 import ReleaseApprovals from "@/components/ReleaseApprovals";
 import ApplicationForm from "@/components/ApplicationForm";
 import ReleaseQA from "@/components/ReleaseQA";
+import ApplicationCard from "@/components/ApplicationCard";
 
 export default function WorkspacePage({
   section,
@@ -123,76 +118,29 @@ export default function WorkspacePage({
       {section === "applications" ? (
         <div className="grid gap-4 md:grid-cols-2">
           {applications.map((app) => (
-            <article key={app.id} className="panel space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <h2 className="text-lg font-semibold">{app.name}</h2>
-                <div className="flex items-center gap-1">
-                  {canEdit && (
-                    <>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={t("applications.editNamed", {
-                          name: app.name,
-                        })}
-                        onClick={() => setEditingApplication(app)}
-                      >
-                        <Pencil className="size-4" aria-hidden="true" />
-                      </Button>
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={t("applications.deleteNamed", {
-                          name: app.name,
-                        })}
-                        tooltip={
-                          releases.some(
-                            (release) => release.application_id === app.id,
-                          )
-                            ? t("applications.hasReleases")
-                            : t("applications.deleteNamed", { name: app.name })
-                        }
-                        disabled={
-                          deletion.busy ||
-                          releases.some(
-                            (release) => release.application_id === app.id,
-                          )
-                        }
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => {
-                          deletion.reset();
-                          setDeletingApplication(app);
-                        }}
-                      >
-                        <Trash2 className="size-4" aria-hidden="true" />
-                      </Button>
-                    </>
-                  )}
-                  {workspace.access_level === "owner" && (
-                    <Button
-                      size="icon-sm"
-                      variant="ghost"
-                      aria-label={t("readiness.templateTitle", {
-                        name: app.name,
-                      })}
-                      onClick={() => setTemplateApplication(app)}
-                    >
-                      <ClipboardCheck className="size-4" aria-hidden="true" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {app.description}
-              </p>
-              <span
-                className="inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
-                data-testid="application-team"
-              >
-                {query.data.teams.find((team) => team.id === app.team_id)
-                  ?.name ?? t("applications.noTeam")}
-              </span>
-            </article>
+            <ApplicationCard
+              key={app.id}
+              application={app}
+              teamName={
+                query.data.teams.find((team) => team.id === app.team_id)?.name
+              }
+              inUse={releases.some(
+                (release) => release.application_id === app.id,
+              )}
+              busy={deletion.busy}
+              {...(canEdit
+                ? {
+                    onEdit: () => setEditingApplication(app),
+                    onDelete: () => {
+                      deletion.reset();
+                      setDeletingApplication(app);
+                    },
+                  }
+                : {})}
+              {...(workspace.access_level === "owner"
+                ? { onTemplate: () => setTemplateApplication(app) }
+                : {})}
+            />
           ))}
           {!applications.length && (
             <EmptyState

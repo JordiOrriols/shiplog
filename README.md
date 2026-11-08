@@ -8,10 +8,20 @@ workspace-scoped API permissions. It has no public token routes or password
 flows. The existing catalog renderer, six languages and release content are
 reused. Start the NestJS local stack first, then `npm start` on port 5318.
 Vite proxies `/api` to the loopback NestJS service, forwarding the Access header.
-No Supabase connection is imported by this entrypoint.
+Active routes do not initialize Supabase or use its authentication.
 
-The internal editing workflows are not migrated yet; this branch is not a
-production replacement. No deployment workflow has been changed.
+Internal roles can open `/shiplog/workspaces/:workspace/applications`.
+The existing application form and cards are shared by the legacy and API
+adapters. Owner/editor grants can create, rename, change descriptions/team
+assignment and confirm deletion; viewers are read-only and external grants
+cannot read the internal directory. Team IDs must belong to the workspace.
+Applications with any release cannot be deleted, including drafts. Writes
+preserve IDs/creation times and record audit events against the verified
+platform account, without linking it to a legacy account. Failed deletion
+closes confirmation and shows the error unobscured.
+Release editing, readiness/checklists, approvals and audit history UI are
+not migrated yet; this branch is not a production replacement.
+No deployment workflow has been changed.
 
 The local Compose stack also has a `shiplog` web profile on
 `http://127.0.0.1:5310/shiplog/`. Its Docker build uses a BuildKit secret for
@@ -30,6 +40,7 @@ are displayed and the directory refreshes only on success. Deploy the backend
 lifecycle migration before enabling these controls.
 
 ## Current vertical slice
+
 Application and checklist modals use the shared UI modal's single content scroll
 region, keeping footer actions visible without nested vertical scrollbars.
 Field adapters reuse UI's `FormField`, `Input` and `Textarea` for applications,

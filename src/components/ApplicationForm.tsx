@@ -13,29 +13,36 @@ import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { useWorkspace } from "@/data/WorkspaceProvider";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
-import type { Application } from "@/lib/contracts";
+import type {
+  Application,
+  applicationInputSchema,
+  teamSchema,
+} from "@/lib/contracts";
+import type { z } from "zod";
 import { localizeError } from "@/lib/localizeError";
 import { Field, TextField } from "./ReleaseFields";
 
-export default function ApplicationForm({
+export function ApplicationFormView({
   application,
   onClose,
+  teams,
+  save,
 }: {
   application?: Application;
   onClose: () => void;
+  teams: {
+    data: z.infer<typeof teamSchema>[] | undefined;
+    isPending: boolean;
+    error: Error | null;
+    refetch: () => unknown;
+  };
+  save: (
+    input: z.infer<typeof applicationInputSchema>,
+    id?: string,
+  ) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const { repository, user } = useData();
-  const { workspace } = useWorkspace();
-  const data = useWorkspaceData();
   const action = useAsyncAction();
-  const teams = useQuery({
-    queryKey: ["shiplog-teams", user?.id, workspace?.id],
-    queryFn: () => {
-      if (!repository || !workspace) throw new Error(t("portal.unavailable"));
-      return repository.teams(workspace.id);
-    },
-  });
   return (
     <Modal
       isOpen
@@ -64,13 +71,13 @@ export default function ApplicationForm({
             onRetry={() => void teams.refetch()}
             retryLabel={t("common.retry")}
           />
-        ) : (
+        ) : teams.data ? (
           <form
             id="application-form"
             className="space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
-              if (!repository || !workspace || action.busy) return;
+              if (action.busy) return;
               const form = new FormData(event.currentTarget);
               const input = {
                 name: String(form.get("name") ?? ""),
@@ -78,12 +85,7 @@ export default function ApplicationForm({
                 team_id: String(form.get("team") ?? "") || null,
               };
               void action.run(async () => {
-                await repository.saveApplication(
-                  workspace.id,
-                  input,
-                  application?.id,
-                );
-                await data.refresh();
+                await save(input, application?.id);
                 onClose();
               });
             }}
@@ -109,7 +111,7 @@ export default function ApplicationForm({
                     defaultValue={application?.team_id ?? ""}
                     options={[
                       { value: "", label: t("applications.noTeam") },
-                      ...teams.data.map((team) => ({
+                      ...(teams.data ?? []).map((team) => ({
                         value: team.id,
                         label: team.name,
                       })),
@@ -122,8 +124,36 @@ export default function ApplicationForm({
               <ErrorState message={localizeError(action.error)} />
             )}
           </form>
-        )}
+        ) : null}
       </div>
     </Modal>
+  );
+}
+
+export default function ApplicationForm(props: {
+  application?: Application;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { repository, user } = useData();
+  const { workspace } = useWorkspace();
+  const data = useWorkspaceData();
+  const teams = useQuery({
+    queryKey: ["shiplog-teams", user?.id, workspace?.id],
+    queryFn: () => {
+      if (!repository || !workspace) throw new Error(t("portal.unavailable"));
+      return repository.teams(workspace.id);
+    },
+  });
+  return (
+    <ApplicationFormView
+      {...props}
+      teams={teams}
+      save={async (input, id) => {
+        if (!repository || !workspace) throw new Error(t("portal.unavailable"));
+        await repository.saveApplication(workspace.id, input, id);
+        await data.refresh();
+      }}
+    />
   );
 }

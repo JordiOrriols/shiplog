@@ -16,6 +16,7 @@ import {
 } from "@jordiorriols/ui";
 import { platformRepository } from "./data/platform";
 import PublicReleases from "./pages/PublicReleases";
+import PlatformApplications from "./pages/PlatformApplications";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
@@ -26,6 +27,7 @@ function WorkspaceDirectory() {
   const query = useQuery({
     queryKey: ["platform-workspaces", "shiplog"],
     queryFn: platformRepository.workspaces,
+    refetchInterval: 60_000,
   });
   return (
     <AppPage className="flex min-h-screen flex-col">
@@ -57,6 +59,14 @@ function WorkspaceDirectory() {
                 <Link to={`/workspaces/${workspace.id}/releases`}>
                   {workspace.name}
                 </Link>
+                {workspace.role !== "external" && (
+                  <Link
+                    className="ml-4 underline"
+                    to={`/workspaces/${workspace.id}/applications`}
+                  >
+                    {t("sections.applications")}
+                  </Link>
+                )}
               </li>
             ))}
             {!query.data.length && <li role="status">{t("access.empty")}</li>}
@@ -73,6 +83,10 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <Routes>
         <Route index element={<WorkspaceDirectory />} />
+        <Route
+          path="workspaces/:workspace/applications"
+          element={<PlatformApplications />}
+        />
         <Route
           path="workspaces/:workspace/releases"
           element={<PublicReleases />}

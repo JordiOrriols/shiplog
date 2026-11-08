@@ -18,6 +18,14 @@ export default function PublicReleases() {
   const [search, setSearch] = useSearchParams();
   const filter = search.get("application") ?? "";
   const { t, i18n } = useTranslation();
+  const directory = useQuery({
+    queryKey: ["platform-workspaces", "shiplog"],
+    queryFn: platformRepository.workspaces,
+    refetchInterval: 60_000,
+  });
+  const internal = directory.data?.some(
+    (item) => item.id === workspace && item.role !== "external",
+  );
   const query = useQuery({
     queryKey: ["shiplog-catalog", workspace],
     retry: false,
@@ -52,6 +60,22 @@ export default function PublicReleases() {
         },
       }}
     >
+      <nav className="flex gap-4">
+        <Link to="/">{t("app.name")}</Link>
+        {internal && (
+          <Link to={`/workspaces/${workspace}/applications`}>
+            {t("sections.applications")}
+          </Link>
+        )}
+      </nav>
+      {directory.error && (
+        <div role="alert">
+          <p>{localizeError(directory.error.message)}</p>
+          <Button onClick={() => void directory.refetch()}>
+            {t("common.retry")}
+          </Button>
+        </div>
+      )}
       {query.isPending ? (
         <AppSkeleton label={t("common.loading")} fullPage={false} />
       ) : query.error ? (
