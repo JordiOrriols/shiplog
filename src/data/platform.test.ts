@@ -2,6 +2,39 @@ import { afterEach, expect, it, vi } from "vitest";
 import { platformRepository } from "./platform";
 
 afterEach(() => vi.unstubAllGlobals());
+it("approval requests only submit the decision and validate reduced identity projections", async () => {
+  const workspace = "11111111-1111-4111-8111-111111111111",
+    id = "22222222-2222-4222-8222-222222222222";
+  const data = {
+    account_id: id,
+    decisions: [{ user_id: id, name: "ada", approved: null, decided_at: null }],
+  };
+  const fetcher = vi
+    .fn()
+    .mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify(data))),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  expect(await platformRepository.decisions(workspace, id)).toEqual(data);
+  await platformRepository.decideRelease(workspace, id, false);
+  expect(fetcher.mock.calls[1]?.[0]).toBe(
+    `/api/shiplog/workspaces/${workspace}/releases/${id}/decision`,
+  );
+  expect(fetcher.mock.calls[1]?.[1].method).toBe("PATCH");
+  expect(JSON.parse(fetcher.mock.calls[1]?.[1].body)).toEqual({
+    approved: false,
+  });
+  await expect(
+    platformRepository.decideRelease(workspace, "bad", true),
+  ).rejects.toThrow();
+  fetcher.mockImplementation(() =>
+    Promise.resolve(
+      new Response(JSON.stringify({ ...data, account_id: "bad" })),
+    ),
+  );
+  await expect(platformRepository.decisions(workspace, id)).rejects.toThrow();
+  expect(fetcher).toHaveBeenCalledTimes(3);
+});
 it("checklist APIs validate templates and completion before scoped JSON writes", async () => {
   const workspace = "11111111-1111-4111-8111-111111111111",
     id = "22222222-2222-4222-8222-222222222222";

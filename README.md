@@ -34,7 +34,14 @@ reload. Changes affect only future release snapshots. Owners/editors complete or
 clear checks; viewers inspect read-only QA and external grants see no QA controls.
 Platform completion actors are stored separately from imported legacy records,
 which remain unchanged. Check completion never changes manual release status.
-Approvals and audit history UI are not migrated yet;
+Approvals now reuse the existing thumbs-up/down controls and QA placement.
+Internal users, including viewers, decide only for themselves; this does not grant
+release editing or change status/QA. Same-email verified subjects keep independent
+decisions. The directory excludes external/revoked grants without deleting stored
+history and projects display names without full emails. Imported legacy approvals
+remain separate and untouched until explicit identity mapping; member-name mapping
+is not inferred from email. Writes audit the verified platform actor.
+Audit history UI is not migrated yet;
 this branch is not a production replacement.
 No deployment workflow has been changed.
 

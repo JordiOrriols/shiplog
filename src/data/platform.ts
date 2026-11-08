@@ -9,6 +9,7 @@ import {
   releaseInputSchema,
   checklistTemplateSchema,
   readinessSchema,
+  decisionSchema,
 } from "@/lib/contracts";
 
 const workspaceSchema = z.object({
@@ -22,6 +23,17 @@ const applicationsDirectorySchema = z.object({
 });
 const workspacePath = (workspace: string) =>
   `shiplog/workspaces/${z.string().uuid().parse(workspace)}`;
+const decisionsSchema = z.object({
+  account_id: z.string().uuid(),
+  decisions: z.array(
+    decisionSchema.pick({
+      user_id: true,
+      name: true,
+      approved: true,
+      decided_at: true,
+    }),
+  ),
+});
 
 export async function platformRequest(
   path: string,
@@ -50,6 +62,24 @@ export async function platformRequest(
 }
 
 export const platformRepository = {
+  decisions: async (workspace: string, release: string) =>
+    decisionsSchema.parse(
+      await platformRequest(
+        `${workspacePath(workspace)}/releases/${z.string().uuid().parse(release)}/decisions`,
+      ),
+    ),
+  decideRelease: async (
+    workspace: string,
+    release: string,
+    approved: boolean,
+  ) =>
+    decisionsSchema.parse(
+      await platformRequest(
+        `${workspacePath(workspace)}/releases/${z.string().uuid().parse(release)}/decision`,
+        { approved: z.boolean().parse(approved) },
+        "PATCH",
+      ),
+    ),
   checklistTemplate: async (workspace: string, application: string) =>
     checklistTemplateSchema.parse(
       await platformRequest(

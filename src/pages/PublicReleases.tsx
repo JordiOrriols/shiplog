@@ -14,6 +14,7 @@ import { z } from "zod";
 import PublicReleaseContent from "@/components/PublicReleaseContent";
 import PlatformReleaseDetails from "@/components/PlatformReleaseDetails";
 import PlatformReleaseQA from "@/components/PlatformReleaseQA";
+import PlatformReleaseApprovals from "@/components/PlatformReleaseApprovals";
 
 export default function PublicReleases() {
   const { workspace = "", releaseId } = useParams();
@@ -162,10 +163,16 @@ export default function PublicReleases() {
                     >
                       {t("releases.detail")}
                     </Button>
-                    <PlatformReleaseQA
+                    <PlatformReleaseApprovals
                       workspace={workspace}
-                      release={release}
-                      canEdit={canEdit}
+                      releaseId={release.id}
+                      qa={
+                        <PlatformReleaseQA
+                          workspace={workspace}
+                          release={release}
+                          canEdit={canEdit}
+                        />
+                      }
                     />
                   </div>
                 )}

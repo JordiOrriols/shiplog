@@ -7,6 +7,13 @@ import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { localizeError } from "@/lib/localizeError";
 
+export type ReleaseDecision = {
+  user_id: string;
+  name: string;
+  approved: boolean | null;
+  decided_at: string | null;
+};
+
 export default function ReleaseApprovals({
   releaseId,
   qa,
@@ -17,7 +24,6 @@ export default function ReleaseApprovals({
   const { t } = useTranslation();
   const { repository, user } = useData();
   const client = useQueryClient();
-  const action = useAsyncAction();
   const key = ["shiplog-decisions", user?.id, releaseId];
   const query = useQuery({
     queryKey: key,
@@ -26,12 +32,44 @@ export default function ReleaseApprovals({
       return repository.decisions(releaseId);
     },
   });
-  const own = query.data?.find((member) => member.user_id === user?.id);
+  return (
+    <ReleaseApprovalsView
+      accountId={user?.id}
+      query={query}
+      {...(qa !== undefined ? { qa } : {})}
+      save={async (approved) => {
+        if (!repository) throw new Error(t("portal.unavailable"));
+        await repository.decideRelease(releaseId, approved);
+        await client.invalidateQueries({ queryKey: key });
+      }}
+    />
+  );
+}
+
+export function ReleaseApprovalsView({
+  accountId,
+  query,
+  save,
+  qa,
+}: {
+  accountId: string | undefined;
+  query: {
+    data: ReleaseDecision[] | undefined;
+    error: Error | null;
+    isPending: boolean;
+    isSuccess: boolean;
+    refetch: () => Promise<unknown>;
+  };
+  save: (approved: boolean) => Promise<void>;
+  qa?: React.ReactNode;
+}) {
+  const { t } = useTranslation();
+  const action = useAsyncAction();
+  const own = query.data?.find((member) => member.user_id === accountId);
   const decide = (approved: boolean) => {
-    if (!repository || action.busy) return;
+    if (!own || action.busy || !query.isSuccess) return;
     void action.run(async () => {
-      await repository.decideRelease(releaseId, approved);
-      await client.invalidateQueries({ queryKey: key });
+      await save(approved);
     });
   };
   return (
@@ -50,7 +88,7 @@ export default function ReleaseApprovals({
           size="icon-sm"
           aria-label={t("simple.approve")}
           aria-pressed={own?.approved === true}
-          disabled={action.busy || !query.isSuccess}
+          disabled={action.busy || !query.isSuccess || !own}
           onClick={() => decide(true)}
           className={
             own?.approved === true
@@ -66,7 +104,7 @@ export default function ReleaseApprovals({
           size="icon-sm"
           aria-label={t("simple.disapprove")}
           aria-pressed={own?.approved === false}
-          disabled={action.busy || !query.isSuccess}
+          disabled={action.busy || !query.isSuccess || !own}
           onClick={() => decide(false)}
           className={
             own?.approved === false
