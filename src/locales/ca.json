@@ -1,4 +1,7 @@
 {
+  "access": {
+    "empty": "No tens accés a cap espai de Shiplog. Demana a un administrador que t'assigni accés."
+  },
   "app": {
     "name": "Shiplog",
     "subtitle": "Historial de versions i comunicació",

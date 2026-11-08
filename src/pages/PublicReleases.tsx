@@ -9,25 +9,23 @@ import {
   Button,
   SelectField,
 } from "@jordiorriols/ui";
-import { createShiplogRepository } from "@/data/repository";
-import { supabase } from "@/data/supabaseClient";
+import { platformRepository } from "@/data/platform";
 import { z } from "zod";
 import PublicReleaseContent from "@/components/PublicReleaseContent";
 
-const repository = supabase ? createShiplogRepository(supabase) : null;
 export default function PublicReleases() {
-  const { token = "", releaseId } = useParams();
+  const { workspace = "", releaseId } = useParams();
   const [search, setSearch] = useSearchParams();
   const filter = search.get("application") ?? "";
   const { t, i18n } = useTranslation();
   const query = useQuery({
-    queryKey: ["shiplog-public", token],
+    queryKey: ["shiplog-catalog", workspace],
     retry: false,
     refetchInterval: 60_000,
     queryFn: () => {
-      if (!repository || !z.string().uuid().safeParse(token).success)
+      if (!z.string().uuid().safeParse(workspace).success)
         throw new Error(t("portal.unavailable"));
-      return repository.publicCatalog(token);
+      return platformRepository.catalog(workspace);
     },
   });
   const names = new Map(
@@ -66,7 +64,9 @@ export default function PublicReleases() {
       ) : (
         <>
           {releaseId ? (
-            <Link to={`/public/${token}/releases`}>{t("portal.title")}</Link>
+            <Link to={`/workspaces/${workspace}/releases`}>
+              {t("portal.title")}
+            </Link>
           ) : (
             <label className="flex flex-wrap items-center gap-3 text-sm">
               {t("portal.filter")}
@@ -104,7 +104,7 @@ export default function PublicReleases() {
                   </time>
                 </div>
                 <h2 className="text-xl font-semibold">
-                  <Link to={`/public/${token}/releases/${release.id}`}>
+                  <Link to={`/workspaces/${workspace}/releases/${release.id}`}>
                     <span className="mr-3 font-mono text-brand">
                       {release.version}
                     </span>

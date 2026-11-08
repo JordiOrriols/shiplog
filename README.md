@@ -1,5 +1,24 @@
 # Shiplog
 
+## Local Cloudflare Access migration branch
+
+This branch currently implements the authenticated read-only catalog at
+`/shiplog/workspaces/:workspace/releases`, with real browser routes and
+workspace-scoped API permissions. It has no public token routes or password
+flows. The existing catalog renderer, six languages and release content are
+reused. Start the NestJS local stack first, then `npm start` on port 5318.
+Vite proxies `/api` to the loopback NestJS service, forwarding the Access header.
+No Supabase connection is imported by this entrypoint.
+
+The internal editing workflows are not migrated yet; this branch is not a
+production replacement. No deployment workflow has been changed.
+
+The local Compose stack also has a `shiplog` web profile on
+`http://127.0.0.1:5310/shiplog/`. Its Docker build uses a BuildKit secret for
+`GITHUB_TOKEN` to install the existing GitHub Packages; the token is not written
+to the image. Nginx serves browser-route fallbacks and proxies `/api` to NestJS
+on the internal Docker network.
+
 Release history and communication on the same Supabase project and shared
 `@jordiorriols/ui` package as Ladders, Planner and Pulse.
 

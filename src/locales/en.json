@@ -1,4 +1,7 @@
 {
+  "access": {
+    "empty": "You do not have access to any Shiplog workspace. Ask an administrator to assign access."
+  },
   "app": {
     "name": "Shiplog",
     "subtitle": "Release history & communication",

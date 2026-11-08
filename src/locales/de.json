@@ -1,4 +1,7 @@
 {
+  "access": {
+    "empty": "Sie haben keinen Zugriff auf einen Shiplog-Arbeitsbereich. Bitten Sie einen Administrator, Ihnen Zugriff zuzuweisen."
+  },
   "app": {
     "name": "Shiplog",
     "subtitle": "Versionsverlauf und Kommunikation",

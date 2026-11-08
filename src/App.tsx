@@ -1,72 +1,88 @@
 import React from "react";
-import { Route, Routes, Navigate } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
+import { Link, Route, Routes } from "react-router-dom";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Button } from "@jordiorriols/ui";
-import { localizeError } from "@/lib/localizeError";
-import { DataProvider } from "./data/DataProvider";
-import { WorkspaceProvider } from "./data/WorkspaceProvider";
-import { EntryGate } from "./components/EntryGate";
-import { PasswordResetDialog } from "./components/PasswordResetDialog";
-import AppLayout from "./components/AppLayout";
-import WorkspacePage from "./pages/WorkspacePage";
+import {
+  AppFooter,
+  AppMain,
+  AppPage,
+  AppSkeleton,
+  Button,
+  LanguageSelector,
+} from "@jordiorriols/ui";
+import { platformRepository } from "./data/platform";
 import PublicReleases from "./pages/PublicReleases";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1 } },
+  defaultOptions: { queries: { retry: false } },
 });
-function Fallback({ error, resetErrorBoundary }: FallbackProps) {
-  const { t } = useTranslation();
+
+function WorkspaceDirectory() {
+  const { t, i18n } = useTranslation();
+  const query = useQuery({
+    queryKey: ["platform-workspaces", "shiplog"],
+    queryFn: platformRepository.workspaces,
+  });
   return (
-    <main className="p-8 space-y-4">
-      <h1>{t("app.errors.title")}</h1>
-      <p role="alert">
-        {localizeError(error instanceof Error ? error.message : String(error))}
-      </p>
-      <Button onClick={resetErrorBoundary}>{t("app.actions.tryAgain")}</Button>
-    </main>
+    <AppPage className="flex min-h-screen flex-col">
+      <AppMain className="w-full flex-1 space-y-8">
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-semibold">{t("app.name")}</h1>
+            <p className="text-muted-foreground">{t("app.subtitle")}</p>
+          </div>
+          <LanguageSelector
+            value={i18n.language}
+            label={t("app.language")}
+            onValueChange={(value) => void i18n.changeLanguage(value)}
+          />
+        </header>
+        {query.isPending ? (
+          <AppSkeleton label={t("common.loading")} fullPage={false} />
+        ) : query.error ? (
+          <div role="alert">
+            <p>{query.error.message}</p>
+            <Button onClick={() => void query.refetch()}>
+              {t("common.retry")}
+            </Button>
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {query.data.map((workspace) => (
+              <li key={workspace.id} className="panel">
+                <Link to={`/workspaces/${workspace.id}/releases`}>
+                  {workspace.name}
+                </Link>
+              </li>
+            ))}
+            {!query.data.length && <li role="status">{t("access.empty")}</li>}
+          </ul>
+        )}
+      </AppMain>
+      <AppFooter text={t("app.footer")} />
+    </AppPage>
   );
 }
-function Internal() {
-  return (
-    <DataProvider>
-      <PasswordResetDialog />
-      <EntryGate>
-        <WorkspaceProvider>
-          <Routes>
-            <Route element={<AppLayout />}>
-              <Route index element={<WorkspacePage section="overview" />} />
-              <Route
-                path="applications"
-                element={<WorkspacePage section="applications" />}
-              />
-              <Route
-                path="releases"
-                element={<WorkspacePage section="releases" />}
-              />
-              <Route path="portal" element={<Navigate to="/" replace />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </WorkspaceProvider>
-      </EntryGate>
-    </DataProvider>
-  );
-}
+
 export default function App() {
   return (
-    <ErrorBoundary FallbackComponent={Fallback}>
-      <QueryClientProvider client={queryClient}>
-        <Routes>
-          <Route path="/public/:token/releases" element={<PublicReleases />} />
-          <Route
-            path="/public/:token/releases/:releaseId"
-            element={<PublicReleases />}
-          />
-          <Route path="*" element={<Internal />} />
-        </Routes>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <Routes>
+        <Route index element={<WorkspaceDirectory />} />
+        <Route
+          path="workspaces/:workspace/releases"
+          element={<PublicReleases />}
+        />
+        <Route
+          path="workspaces/:workspace/releases/:releaseId"
+          element={<PublicReleases />}
+        />
+        <Route path="*" element={<WorkspaceDirectory />} />
+      </Routes>
+    </QueryClientProvider>
   );
 }
