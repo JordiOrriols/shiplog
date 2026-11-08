@@ -23,8 +23,6 @@ export default function ChecklistTemplate({
   const { t } = useTranslation();
   const { repository, user } = useData();
   const client = useQueryClient();
-  const [saved, setSaved] = useState(false);
-  const [reload, setReload] = useState(0);
   const key = ["shiplog-template", user?.id, application.id];
   const query = useQuery({
     queryKey: key,
@@ -35,6 +33,39 @@ export default function ChecklistTemplate({
       return repository.checklistTemplate(application.id);
     },
   });
+  return (
+    <ChecklistTemplateView
+      application={application}
+      onClose={onClose}
+      query={query}
+      save={async (input) => {
+        if (!repository) throw new Error(t("portal.unavailable"));
+        await repository.saveChecklistTemplate(application.id, input);
+        await client.invalidateQueries({ queryKey: key });
+      }}
+    />
+  );
+}
+
+export function ChecklistTemplateView({
+  application,
+  onClose,
+  query,
+  save,
+}: {
+  application: Pick<Application, "id" | "name">;
+  onClose: () => void;
+  query: {
+    data: Template | undefined;
+    error: Error | null;
+    isPending: boolean;
+    refetch: () => Promise<{ error: Error | null }>;
+  };
+  save: (input: Template) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const [saved, setSaved] = useState(false);
+  const [reload, setReload] = useState(0);
   if (query.data && !query.error)
     return (
       <TemplateEditor
@@ -45,12 +76,11 @@ export default function ChecklistTemplate({
         saved={saved}
         onSave={async (items) => {
           setSaved(false);
-          if (!repository) throw new Error(t("portal.unavailable"));
-          await repository.saveChecklistTemplate(application.id, {
+          if (!query.data) throw new Error(t("portal.unavailable"));
+          await save({
             revision: query.data.revision,
             items,
           });
-          await client.invalidateQueries({ queryKey: key });
           setSaved(true);
         }}
         onReload={() => {
@@ -100,7 +130,7 @@ function TemplateEditor({
   onSave: (items: ChecklistDefinition[]) => Promise<void>;
   onReload: () => void;
   onDirty: () => void;
-  application: Application;
+  application: Pick<Application, "id" | "name">;
   onClose: () => void;
   saved: boolean;
 }) {

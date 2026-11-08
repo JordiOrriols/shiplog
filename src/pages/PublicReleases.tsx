@@ -13,6 +13,7 @@ import { platformRepository } from "@/data/platform";
 import { z } from "zod";
 import PublicReleaseContent from "@/components/PublicReleaseContent";
 import PlatformReleaseDetails from "@/components/PlatformReleaseDetails";
+import PlatformReleaseQA from "@/components/PlatformReleaseQA";
 
 export default function PublicReleases() {
   const { workspace = "", releaseId } = useParams();
@@ -154,12 +155,19 @@ export default function PublicReleases() {
                 </p>
                 <PublicReleaseContent release={release} />
                 {internal && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setEditingId(release.id)}
-                  >
-                    {t("releases.detail")}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditingId(release.id)}
+                    >
+                      {t("releases.detail")}
+                    </Button>
+                    <PlatformReleaseQA
+                      workspace={workspace}
+                      release={release}
+                      canEdit={canEdit}
+                    />
+                  </div>
                 )}
               </article>
             ))}

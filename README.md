@@ -28,7 +28,13 @@ grant; failed saves do not leave partial releases/links/audits. Viewers can insp
 release details without saving; external users only see the reduced catalog.
 Updates preserve release IDs/timestamps and are audited against platform
 identities, without legacy account impersonation.
-Readiness/checklists, approvals and audit history UI are not migrated yet;
+Checklist templates and QA completion now reuse the existing editor/modal/views
+through the API. Only owners edit templates; stale saves show an error and offer
+reload. Changes affect only future release snapshots. Owners/editors complete or
+clear checks; viewers inspect read-only QA and external grants see no QA controls.
+Platform completion actors are stored separately from imported legacy records,
+which remain unchanged. Check completion never changes manual release status.
+Approvals and audit history UI are not migrated yet;
 this branch is not a production replacement.
 No deployment workflow has been changed.
 

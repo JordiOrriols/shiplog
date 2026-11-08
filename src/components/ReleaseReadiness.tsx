@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AppSkeleton, Checkbox, ErrorState } from "@jordiorriols/ui";
 import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
-import type { Release } from "@/lib/contracts";
+import type { Release, Readiness } from "@/lib/contracts";
 import { localizeError } from "@/lib/localizeError";
 import { useReleaseReadiness } from "@/data/useReleaseReadiness";
 
@@ -18,12 +18,40 @@ export default function ReleaseReadiness({
   const { t } = useTranslation();
   const { repository } = useData();
   const client = useQueryClient();
+  const { query, key } = useReleaseReadiness(release.id);
+  return (
+    <ReleaseReadinessView
+      canEdit={canEdit}
+      query={query}
+      complete={async (id, checked) => {
+        if (!repository) throw new Error(t("portal.unavailable"));
+        await repository.completeChecklistItem(release.id, id, checked);
+        await client.invalidateQueries({ queryKey: key });
+      }}
+    />
+  );
+}
+
+export function ReleaseReadinessView({
+  canEdit,
+  query,
+  complete,
+}: {
+  canEdit: boolean;
+  query: {
+    data: Readiness | undefined;
+    error: Error | null;
+    isPending: boolean;
+    refetch: () => Promise<unknown>;
+  };
+  complete: (id: string, checked: boolean) => Promise<void>;
+}) {
+  const { t } = useTranslation();
   const action = useAsyncAction();
   const [pending, setPending] = useState<{
     id: string;
     checked: boolean;
   } | null>(null);
-  const { query, key } = useReleaseReadiness(release.id);
   if (query.isPending)
     return <AppSkeleton fullPage={false} label={t("common.loading")} />;
   if (query.error)
@@ -34,6 +62,7 @@ export default function ReleaseReadiness({
         retryLabel={t("common.retry")}
       />
     );
+  if (!query.data) return <ErrorState message={t("portal.unavailable")} />;
   const items = query.data.items;
   return (
     <section className="space-y-4">
@@ -60,17 +89,12 @@ export default function ReleaseReadiness({
                     : !!item.completed_at
                 }
                 onCheckedChange={(value) => {
-                  if (!repository || action.busy) return;
+                  if (!canEdit || action.busy) return;
                   const checked = value === true;
                   setPending({ id: item.id, checked });
                   void action.run(async () => {
                     try {
-                      await repository.completeChecklistItem(
-                        release.id,
-                        item.id,
-                        checked,
-                      );
-                      await client.invalidateQueries({ queryKey: key });
+                      await complete(item.id, checked);
                     } finally {
                       setPending(null);
                     }

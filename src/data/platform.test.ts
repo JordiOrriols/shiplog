@@ -2,6 +2,62 @@ import { afterEach, expect, it, vi } from "vitest";
 import { platformRepository } from "./platform";
 
 afterEach(() => vi.unstubAllGlobals());
+it("checklist APIs validate templates and completion before scoped JSON writes", async () => {
+  const workspace = "11111111-1111-4111-8111-111111111111",
+    id = "22222222-2222-4222-8222-222222222222";
+  const template = {
+    revision: 0,
+    items: [
+      { category: "QA", title: "Check", description: "", mandatory: true },
+    ],
+  };
+  const readiness = {
+    release_id: id,
+    template_revision: 1,
+    qa_status: "not_started",
+    qa_notes: "",
+    qa_recorded_by: null,
+    qa_recorded_at: null,
+    approved_by: null,
+    approved_at: null,
+    approval_override_reason: "",
+    items: [],
+  };
+  const fetcher = vi
+    .fn()
+    .mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify(template))),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  await platformRepository.checklistTemplate(workspace, id);
+  await platformRepository.saveChecklistTemplate(workspace, id, template);
+  expect(fetcher.mock.calls[1]?.[0]).toBe(
+    `/api/shiplog/workspaces/${workspace}/applications/${id}/checklist-template`,
+  );
+  expect(fetcher.mock.calls[1]?.[1].method).toBe("PATCH");
+  expect(JSON.parse(fetcher.mock.calls[1]?.[1].body)).toEqual(template);
+  fetcher.mockImplementation(() =>
+    Promise.resolve(new Response(JSON.stringify(readiness))),
+  );
+  await platformRepository.readiness(workspace, id);
+  await platformRepository.completeChecklistItem(workspace, id, id, false);
+  expect(fetcher.mock.calls[3]?.[0]).toBe(
+    `/api/shiplog/workspaces/${workspace}/releases/${id}/checklist/${id}`,
+  );
+  expect(JSON.parse(fetcher.mock.calls[3]?.[1].body)).toEqual({
+    completed: false,
+  });
+  await expect(
+    platformRepository.saveChecklistTemplate(workspace, id, {
+      ...template,
+      revision: -1,
+    }),
+  ).rejects.toThrow();
+  await expect(
+    platformRepository.completeChecklistItem(workspace, id, "bad", true),
+  ).rejects.toThrow();
+  expect(fetcher).toHaveBeenCalledTimes(4);
+});
 it("release configuration validates and scopes writes and linked-feature reads", async () => {
   const workspace = "11111111-1111-4111-8111-111111111111",
     id = "22222222-2222-4222-8222-222222222222";

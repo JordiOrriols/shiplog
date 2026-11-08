@@ -17,6 +17,7 @@ import { platformRepository } from "@/data/platform";
 import ApplicationCard from "@/components/ApplicationCard";
 import { ApplicationFormView } from "@/components/ApplicationForm";
 import type { Application } from "@/lib/contracts";
+import PlatformChecklistTemplate from "@/components/PlatformChecklistTemplate";
 
 export default function PlatformApplications() {
   const { workspace } = useParams();
@@ -42,6 +43,7 @@ export default function PlatformApplications() {
   const [editing, setEditing] = useState<Application | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<Application | null>(null);
+  const [template, setTemplate] = useState<Application | null>(null);
   const action = useAsyncAction();
   const error = directory.error ?? query.error;
   return (
@@ -109,11 +111,21 @@ export default function PlatformApplications() {
                         },
                       }
                     : {})}
+                  {...(access?.role === "owner"
+                    ? { onTemplate: () => setTemplate(application) }
+                    : {})}
                 />
               ))}
             </div>
             {!query.data.applications.length && (
               <p role="status">{t("common.empty")}</p>
+            )}
+            {access?.role === "owner" && template && (
+              <PlatformChecklistTemplate
+                workspace={workspace}
+                application={template}
+                onClose={() => setTemplate(null)}
+              />
             )}
             {canEdit && (creating || editing) && (
               <ApplicationFormView

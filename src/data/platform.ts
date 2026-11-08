@@ -7,6 +7,8 @@ import {
   plannerFeatureSchema,
   publicReleaseSchema,
   releaseInputSchema,
+  checklistTemplateSchema,
+  readinessSchema,
 } from "@/lib/contracts";
 
 const workspaceSchema = z.object({
@@ -48,6 +50,43 @@ export async function platformRequest(
 }
 
 export const platformRepository = {
+  checklistTemplate: async (workspace: string, application: string) =>
+    checklistTemplateSchema.parse(
+      await platformRequest(
+        `${workspacePath(workspace)}/applications/${z.string().uuid().parse(application)}/checklist-template`,
+      ),
+    ),
+  saveChecklistTemplate: async (
+    workspace: string,
+    application: string,
+    input: z.infer<typeof checklistTemplateSchema>,
+  ) =>
+    checklistTemplateSchema.parse(
+      await platformRequest(
+        `${workspacePath(workspace)}/applications/${z.string().uuid().parse(application)}/checklist-template`,
+        checklistTemplateSchema.parse(input),
+        "PATCH",
+      ),
+    ),
+  readiness: async (workspace: string, release: string) =>
+    readinessSchema.parse(
+      await platformRequest(
+        `${workspacePath(workspace)}/releases/${z.string().uuid().parse(release)}/readiness`,
+      ),
+    ),
+  completeChecklistItem: async (
+    workspace: string,
+    release: string,
+    item: string,
+    completed: boolean,
+  ) =>
+    readinessSchema.parse(
+      await platformRequest(
+        `${workspacePath(workspace)}/releases/${z.string().uuid().parse(release)}/checklist/${z.string().uuid().parse(item)}`,
+        { completed: z.boolean().parse(completed) },
+        "PATCH",
+      ),
+    ),
   releaseFeatures: async (workspace: string, release: string) =>
     z
       .array(plannerFeatureSchema)
