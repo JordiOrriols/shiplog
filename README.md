@@ -2,7 +2,7 @@
 
 ## Local Cloudflare Access migration branch
 
-This branch currently implements the authenticated read-only catalog at
+This branch currently implements the authenticated catalog and release editing at
 `/shiplog/workspaces/:workspace/releases`, with real browser routes and
 workspace-scoped API permissions. It has no public token routes or password
 flows. The existing catalog renderer, six languages and release content are
@@ -19,8 +19,17 @@ Applications with any release cannot be deleted, including drafts. Writes
 preserve IDs/creation times and record audit events against the verified
 platform account, without linking it to a legacy account. Failed deletion
 closes confirmation and shows the error unobscured.
-Release editing, readiness/checklists, approvals and audit history UI are
-not migrated yet; this branch is not a production replacement.
+The existing release modal is also shared by the legacy and API adapters.
+Owner/editor grants create releases and save draft versions/titles, notes, status
+and staged Planner links together. Version types reuse the existing server-side
+SemVer comparison. Non-draft version/title/links are locked; notes/status remain
+editable, as before. Linking requires an additional internal Planner workspace
+grant; failed saves do not leave partial releases/links/audits. Viewers can inspect
+release details without saving; external users only see the reduced catalog.
+Updates preserve release IDs/timestamps and are audited against platform
+identities, without legacy account impersonation.
+Readiness/checklists, approvals and audit history UI are not migrated yet;
+this branch is not a production replacement.
 No deployment workflow has been changed.
 
 The local Compose stack also has a `shiplog` web profile on

@@ -2,6 +2,78 @@ import { afterEach, expect, it, vi } from "vitest";
 import { platformRepository } from "./platform";
 
 afterEach(() => vi.unstubAllGlobals());
+it("release configuration validates and scopes writes and linked-feature reads", async () => {
+  const workspace = "11111111-1111-4111-8111-111111111111",
+    id = "22222222-2222-4222-8222-222222222222";
+  const input = {
+    application_id: id,
+    version: "1.0.0",
+    title: " Release ",
+    public_notes: "",
+  };
+  const fetcher = vi.fn().mockImplementation(() =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          ...input,
+          title: "Release",
+          id,
+          release_type: "major",
+          status: "draft",
+          created_at: "2026-11-08",
+          features: [],
+        }),
+      ),
+    ),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  await platformRepository.saveConfiguration(
+    workspace,
+    input,
+    "draft",
+    null,
+    null,
+  );
+  expect(fetcher.mock.calls[0]?.[0]).toBe(
+    `/api/shiplog/workspaces/${workspace}/releases`,
+  );
+  expect(JSON.parse(fetcher.mock.calls[0]?.[1].body)).toEqual({
+    ...input,
+    title: "Release",
+    status: "draft",
+    feature_ids: null,
+  });
+  await platformRepository.saveConfiguration(workspace, input, "qa", [id], id);
+  expect(fetcher.mock.calls[1]?.[1].method).toBe("PATCH");
+  fetcher.mockImplementation(() => Promise.resolve(new Response("[]")));
+  await platformRepository.releaseFeatures(workspace, id);
+  expect(fetcher.mock.calls[2]?.[0]).toBe(
+    `/api/shiplog/workspaces/${workspace}/releases/${id}/features`,
+  );
+  await platformRepository.workspaceFeatures(workspace);
+  expect(fetcher.mock.calls[3]?.[0]).toBe(
+    `/api/shiplog/workspaces/${workspace}/features`,
+  );
+  await expect(
+    platformRepository.saveConfiguration(
+      workspace,
+      { ...input, version: "01.0.0" },
+      "draft",
+      null,
+      null,
+    ),
+  ).rejects.toThrow();
+  await expect(
+    platformRepository.saveConfiguration(
+      workspace,
+      input,
+      "invalid",
+      null,
+      null,
+    ),
+  ).rejects.toThrow();
+  expect(fetcher).toHaveBeenCalledTimes(4);
+});
 it("application CRUD validates editable fields and uses scoped JSON requests", async () => {
   const workspace = "11111111-1111-4111-8111-111111111111",
     id = "22222222-2222-4222-8222-222222222222";

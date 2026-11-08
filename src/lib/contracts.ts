@@ -111,7 +111,7 @@ export const releaseInputSchema = releaseSchema
     application_id: true,
   })
   .extend({
-    version: z.string().regex(versionPattern),
+    version: z.string().max(100).regex(versionPattern),
     title: z.string().trim().min(1).max(160),
     public_notes: z.string().max(20000),
   });

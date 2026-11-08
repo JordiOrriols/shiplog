@@ -4,6 +4,9 @@ import {
   applicationInputSchema,
   teamSchema,
   publicCatalogSchema,
+  plannerFeatureSchema,
+  publicReleaseSchema,
+  releaseInputSchema,
 } from "@/lib/contracts";
 
 const workspaceSchema = z.object({
@@ -45,6 +48,36 @@ export async function platformRequest(
 }
 
 export const platformRepository = {
+  releaseFeatures: async (workspace: string, release: string) =>
+    z
+      .array(plannerFeatureSchema)
+      .parse(
+        await platformRequest(
+          `${workspacePath(workspace)}/releases/${z.string().uuid().parse(release)}/features`,
+        ),
+      ),
+  workspaceFeatures: async (workspace: string) =>
+    z
+      .array(plannerFeatureSchema)
+      .parse(await platformRequest(`${workspacePath(workspace)}/features`)),
+  saveConfiguration: async (
+    workspace: string,
+    input: z.infer<typeof releaseInputSchema>,
+    status: string,
+    featureIds: string[] | null,
+    id: string | null,
+  ) =>
+    publicReleaseSchema.parse(
+      await platformRequest(
+        `${workspacePath(workspace)}/releases${id ? `/${z.string().uuid().parse(id)}` : ""}`,
+        {
+          ...releaseInputSchema.parse(input),
+          status: z.enum(["draft", "qa", "released"]).parse(status),
+          feature_ids: z.array(z.string().uuid()).nullable().parse(featureIds),
+        },
+        id ? "PATCH" : "POST",
+      ),
+    ),
   applications: async (workspace: string) =>
     applicationsDirectorySchema.parse(
       await platformRequest(`${workspacePath(workspace)}/applications`),

@@ -13,45 +13,53 @@ import { useAsyncAction } from "@jordiorriols/ui/hooks";
 import { useData } from "@/data/DataProvider";
 import { useWorkspace } from "@/data/WorkspaceProvider";
 import { useWorkspaceData } from "@/data/useWorkspaceData";
-import { isEditableDraft, type Release } from "@/lib/contracts";
+import {
+  isEditableDraft,
+  type Release,
+  type Application,
+  plannerFeatureSchema,
+  releaseInputSchema,
+} from "@/lib/contracts";
+import type { z } from "zod";
 import { localizeError } from "@/lib/localizeError";
 import { ReleaseFields, releaseFormInput } from "./ReleaseFields";
 
-export default function ReleaseDetails({
+type Feature = z.infer<typeof plannerFeatureSchema>;
+type FeatureQuery = {
+  data: Feature[] | undefined;
+  isPending: boolean;
+  isSuccess: boolean;
+  error: Error | null;
+  refetch: () => Promise<unknown>;
+};
+
+export function ReleaseDetailsView({
   release,
   canEdit,
   onClose,
+  applications,
+  features,
+  candidates,
+  save,
 }: {
   release?: Release;
   canEdit: boolean;
   onClose: () => void;
+  applications: Pick<Application, "id" | "name">[];
+  features: FeatureQuery;
+  candidates: FeatureQuery;
+  save: (
+    input: z.infer<typeof releaseInputSchema>,
+    status: string,
+    featureIds: string[] | null,
+    id: string | null,
+  ) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const { repository, user } = useData();
-  const { workspace } = useWorkspace();
-  const workspaceData = useWorkspaceData();
-  const client = useQueryClient();
   const action = useAsyncAction();
   const [selected, setSelected] = useState("");
   const [featureIds, setFeatureIds] = useState<string[] | null>(null);
   const editable = canEdit && (!release || isEditableDraft(release));
-  const featuresKey = ["shiplog-features", user?.id, release?.id];
-  const features = useQuery({
-    queryKey: featuresKey,
-    enabled: !!release,
-    queryFn: () => {
-      if (!repository || !release) throw new Error(t("portal.unavailable"));
-      return repository.releaseFeatures(release.id);
-    },
-  });
-  const candidates = useQuery({
-    queryKey: ["shiplog-workspace-features", user?.id, workspace?.id],
-    enabled: editable && !!workspace,
-    queryFn: () => {
-      if (!repository || !workspace) throw new Error(t("portal.unavailable"));
-      return repository.workspaceFeatures(workspace.id);
-    },
-  });
   const linked = features.data ?? [];
   const ids = featureIds ?? linked.map((feature) => feature.id);
   const names = new Map(
@@ -60,7 +68,6 @@ export default function ReleaseDetails({
       feature.name,
     ]),
   );
-  const applications = workspaceData.data?.applications ?? [];
   const loading = !!release && features.isPending;
   return (
     <Modal
@@ -91,14 +98,7 @@ export default function ReleaseDetails({
         className="space-y-5"
         onSubmit={(event) => {
           event.preventDefault();
-          if (
-            !repository ||
-            action.busy ||
-            !canEdit ||
-            loading ||
-            features.error
-          )
-            return;
+          if (action.busy || !canEdit || loading || features.error) return;
           const input = releaseFormInput(
             event.currentTarget,
             release?.application_id,
@@ -107,16 +107,7 @@ export default function ReleaseDetails({
             new FormData(event.currentTarget).get("status"),
           );
           void action.run(async () => {
-            await repository.saveConfiguration(
-              input,
-              status,
-              featureIds,
-              release?.id ?? null,
-            );
-            await Promise.all([
-              workspaceData.refresh(),
-              client.invalidateQueries({ queryKey: featuresKey }),
-            ]);
+            await save(input, status, featureIds, release?.id ?? null);
             setFeatureIds(null);
             if (!release) onClose();
           });
@@ -263,5 +254,56 @@ export default function ReleaseDetails({
         )}
       </form>
     </Modal>
+  );
+}
+
+export default function ReleaseDetails({
+  release,
+  canEdit,
+  onClose,
+}: {
+  release?: Release;
+  canEdit: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { repository, user } = useData();
+  const { workspace } = useWorkspace();
+  const workspaceData = useWorkspaceData();
+  const client = useQueryClient();
+  const featuresKey = ["shiplog-features", user?.id, release?.id];
+  const features = useQuery({
+    queryKey: featuresKey,
+    enabled: !!release,
+    queryFn: () => {
+      if (!repository || !release) throw new Error(t("portal.unavailable"));
+      return repository.releaseFeatures(release.id);
+    },
+  });
+  const candidates = useQuery({
+    queryKey: ["shiplog-workspace-features", user?.id, workspace?.id],
+    enabled: canEdit && (!release || isEditableDraft(release)) && !!workspace,
+    queryFn: () => {
+      if (!repository || !workspace) throw new Error(t("portal.unavailable"));
+      return repository.workspaceFeatures(workspace.id);
+    },
+  });
+  return (
+    <ReleaseDetailsView
+      {...(release ? { release } : {})}
+      canEdit={canEdit}
+      onClose={onClose}
+      applications={workspaceData.data?.applications ?? []}
+      features={features}
+      candidates={candidates}
+      save={async (input, status, ids, id) => {
+        if (!repository) throw new Error(t("portal.unavailable"));
+        await repository.saveConfiguration(input, status, ids, id);
+        await Promise.all([
+          workspaceData.refresh(),
+          client.invalidateQueries({ queryKey: featuresKey }),
+        ]);
+      }}
+    />
   );
 }

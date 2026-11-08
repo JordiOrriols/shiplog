@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { localizeError } from "@/lib/localizeError";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -12,12 +12,15 @@ import {
 import { platformRepository } from "@/data/platform";
 import { z } from "zod";
 import PublicReleaseContent from "@/components/PublicReleaseContent";
+import PlatformReleaseDetails from "@/components/PlatformReleaseDetails";
 
 export default function PublicReleases() {
   const { workspace = "", releaseId } = useParams();
   const [search, setSearch] = useSearchParams();
   const filter = search.get("application") ?? "";
   const { t, i18n } = useTranslation();
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const directory = useQuery({
     queryKey: ["platform-workspaces", "shiplog"],
     queryFn: platformRepository.workspaces,
@@ -26,6 +29,8 @@ export default function PublicReleases() {
   const internal = directory.data?.some(
     (item) => item.id === workspace && item.role !== "external",
   );
+  const access = directory.data?.find((item) => item.id === workspace);
+  const canEdit = access?.role === "owner" || access?.role === "editor";
   const query = useQuery({
     queryKey: ["shiplog-catalog", workspace],
     retry: false,
@@ -39,6 +44,7 @@ export default function PublicReleases() {
   const names = new Map(
     query.data?.applications.map((app) => [app.id, app.name]),
   );
+  const editing = query.data?.releases.find((item) => item.id === editingId);
   const releases =
     query.data?.releases.filter(
       (release) =>
@@ -87,6 +93,14 @@ export default function PublicReleases() {
         </div>
       ) : (
         <>
+          {canEdit && (
+            <Button
+              disabled={!query.data.applications.length}
+              onClick={() => setCreating(true)}
+            >
+              {t("releases.new")}
+            </Button>
+          )}
           {releaseId ? (
             <Link to={`/workspaces/${workspace}/releases`}>
               {t("portal.title")}
@@ -139,6 +153,14 @@ export default function PublicReleases() {
                   {t(`statuses.${release.status}`)}
                 </p>
                 <PublicReleaseContent release={release} />
+                {internal && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditingId(release.id)}
+                  >
+                    {t("releases.detail")}
+                  </Button>
+                )}
               </article>
             ))}
             {!releases.length && (
@@ -147,6 +169,19 @@ export default function PublicReleases() {
               </p>
             )}
           </div>
+          {internal && (creating || editing) && (
+            <PlatformReleaseDetails
+              key={editingId ?? "new"}
+              workspace={workspace}
+              {...(editing ? { release: editing } : {})}
+              applications={query.data.applications}
+              canEdit={canEdit}
+              onClose={() => {
+                setCreating(false);
+                setEditingId(null);
+              }}
+            />
+          )}
         </>
       )}
     </PublicAppShell>
