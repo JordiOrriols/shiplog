@@ -4,7 +4,7 @@ import { Button, Modal } from "@jordiorriols/ui";
 import { ClipboardCheck } from "@jordiorriols/ui/icons";
 import { useReleaseReadiness } from "@/data/useReleaseReadiness";
 import { localizeError } from "@/lib/localizeError";
-import type { Release } from "@/lib/contracts";
+import type { Release, Readiness } from "@/lib/contracts";
 import ReleaseReadiness from "./ReleaseReadiness";
 
 export default function ReleaseQA({
@@ -14,9 +14,30 @@ export default function ReleaseQA({
   release: Release;
   canEdit: boolean;
 }) {
+  const { query } = useReleaseReadiness(release.id);
+  return (
+    <ReleaseQAView release={release} query={query}>
+      <ReleaseReadiness release={release} canEdit={canEdit} />
+    </ReleaseQAView>
+  );
+}
+
+export function ReleaseQAView({
+  release,
+  query,
+  children,
+}: {
+  release: Release;
+  query: {
+    data: Readiness | undefined;
+    error: Error | null;
+    isSuccess: boolean;
+    isFetching: boolean;
+  };
+  children: React.ReactNode;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const { query } = useReleaseReadiness(release.id);
   const items = query.data?.items ?? [];
   const complete =
     query.isSuccess &&
@@ -53,7 +74,7 @@ export default function ReleaseQA({
           closeLabel={t("common.close")}
           onOpenChange={setOpen}
         >
-          <ReleaseReadiness release={release} canEdit={canEdit} />
+          {children}
         </Modal>
       )}
     </>

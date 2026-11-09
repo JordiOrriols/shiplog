@@ -1,4 +1,17 @@
 {
+  "audit": {
+    "title": "Historial de auditoría",
+    "description": "Historial de solo lectura. Las cuentas anteriores no se vinculan automáticamente a identidades de la plataforma.",
+    "platform": "Plataforma",
+    "legacy": "Anterior",
+    "legacyActor": "Cuenta anterior (sin vincular)",
+    "details": "Detalles del evento",
+    "more": "Cargar más eventos"
+  },
+  "access": {
+    "manageWorkspace": "Acceso al espacio",
+    "empty": "No tienes acceso a ningún espacio de Shiplog. Pide a un administrador que te asigne acceso."
+  },
   "app": {
     "name": "Shiplog",
     "subtitle": "Historial de versiones y comunicación",

@@ -1,4 +1,17 @@
 {
+  "audit": {
+    "title": "Historial d'auditoria",
+    "description": "Historial de només lectura. Els comptes anteriors no es vinculen automàticament a identitats de la plataforma.",
+    "platform": "Plataforma",
+    "legacy": "Anterior",
+    "legacyActor": "Compte anterior (sense vincular)",
+    "details": "Detalls de l'esdeveniment",
+    "more": "Carrega més esdeveniments"
+  },
+  "access": {
+    "manageWorkspace": "Accés a l'espai",
+    "empty": "No tens accés a cap espai de Shiplog. Demana a un administrador que t'assigni accés."
+  },
   "app": {
     "name": "Shiplog",
     "subtitle": "Historial de versions i comunicació",

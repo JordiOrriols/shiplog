@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { localizeError } from "@/lib/localizeError";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -9,30 +9,44 @@ import {
   Button,
   SelectField,
 } from "@jordiorriols/ui";
-import { createShiplogRepository } from "@/data/repository";
-import { supabase } from "@/data/supabaseClient";
+import { platformRepository } from "@/data/platform";
 import { z } from "zod";
 import PublicReleaseContent from "@/components/PublicReleaseContent";
+import PlatformReleaseDetails from "@/components/PlatformReleaseDetails";
+import PlatformReleaseQA from "@/components/PlatformReleaseQA";
+import PlatformReleaseApprovals from "@/components/PlatformReleaseApprovals";
 
-const repository = supabase ? createShiplogRepository(supabase) : null;
 export default function PublicReleases() {
-  const { token = "", releaseId } = useParams();
+  const { workspace = "", releaseId } = useParams();
   const [search, setSearch] = useSearchParams();
   const filter = search.get("application") ?? "";
   const { t, i18n } = useTranslation();
+  const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const directory = useQuery({
+    queryKey: ["platform-workspaces", "shiplog"],
+    queryFn: platformRepository.workspaces,
+    refetchInterval: 60_000,
+  });
+  const internal = directory.data?.some(
+    (item) => item.id === workspace && item.role !== "external",
+  );
+  const access = directory.data?.find((item) => item.id === workspace);
+  const canEdit = access?.role === "owner" || access?.role === "editor";
   const query = useQuery({
-    queryKey: ["shiplog-public", token],
+    queryKey: ["shiplog-catalog", workspace],
     retry: false,
     refetchInterval: 60_000,
     queryFn: () => {
-      if (!repository || !z.string().uuid().safeParse(token).success)
+      if (!z.string().uuid().safeParse(workspace).success)
         throw new Error(t("portal.unavailable"));
-      return repository.publicCatalog(token);
+      return platformRepository.catalog(workspace);
     },
   });
   const names = new Map(
     query.data?.applications.map((app) => [app.id, app.name]),
   );
+  const editing = query.data?.releases.find((item) => item.id === editingId);
   const releases =
     query.data?.releases.filter(
       (release) =>
@@ -54,6 +68,27 @@ export default function PublicReleases() {
         },
       }}
     >
+      <nav className="flex gap-4">
+        <Link to="/">{t("app.name")}</Link>
+        {internal && (
+          <>
+            <Link to={`/workspaces/${workspace}/applications`}>
+              {t("sections.applications")}
+            </Link>
+            <Link to={`/workspaces/${workspace}/audit`}>
+              {t("audit.title")}
+            </Link>
+          </>
+        )}
+      </nav>
+      {directory.error && (
+        <div role="alert">
+          <p>{localizeError(directory.error.message)}</p>
+          <Button onClick={() => void directory.refetch()}>
+            {t("common.retry")}
+          </Button>
+        </div>
+      )}
       {query.isPending ? (
         <AppSkeleton label={t("common.loading")} fullPage={false} />
       ) : query.error ? (
@@ -65,8 +100,18 @@ export default function PublicReleases() {
         </div>
       ) : (
         <>
+          {canEdit && (
+            <Button
+              disabled={!query.data.applications.length}
+              onClick={() => setCreating(true)}
+            >
+              {t("releases.new")}
+            </Button>
+          )}
           {releaseId ? (
-            <Link to={`/public/${token}/releases`}>{t("portal.title")}</Link>
+            <Link to={`/workspaces/${workspace}/releases`}>
+              {t("portal.title")}
+            </Link>
           ) : (
             <label className="flex flex-wrap items-center gap-3 text-sm">
               {t("portal.filter")}
@@ -104,7 +149,7 @@ export default function PublicReleases() {
                   </time>
                 </div>
                 <h2 className="text-xl font-semibold">
-                  <Link to={`/public/${token}/releases/${release.id}`}>
+                  <Link to={`/workspaces/${workspace}/releases/${release.id}`}>
                     <span className="mr-3 font-mono text-brand">
                       {release.version}
                     </span>
@@ -115,6 +160,27 @@ export default function PublicReleases() {
                   {t(`statuses.${release.status}`)}
                 </p>
                 <PublicReleaseContent release={release} />
+                {internal && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditingId(release.id)}
+                    >
+                      {t("releases.detail")}
+                    </Button>
+                    <PlatformReleaseApprovals
+                      workspace={workspace}
+                      releaseId={release.id}
+                      qa={
+                        <PlatformReleaseQA
+                          workspace={workspace}
+                          release={release}
+                          canEdit={canEdit}
+                        />
+                      }
+                    />
+                  </div>
+                )}
               </article>
             ))}
             {!releases.length && (
@@ -123,6 +189,19 @@ export default function PublicReleases() {
               </p>
             )}
           </div>
+          {internal && (creating || editing) && (
+            <PlatformReleaseDetails
+              key={editingId ?? "new"}
+              workspace={workspace}
+              {...(editing ? { release: editing } : {})}
+              applications={query.data.applications}
+              canEdit={canEdit}
+              onClose={() => {
+                setCreating(false);
+                setEditingId(null);
+              }}
+            />
+          )}
         </>
       )}
     </PublicAppShell>

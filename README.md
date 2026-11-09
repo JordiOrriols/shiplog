@@ -1,5 +1,72 @@
 # Shiplog
 
+## Local Cloudflare Access migration branch
+
+This branch currently implements the authenticated catalog and release editing at
+`/shiplog/workspaces/:workspace/releases`, with real browser routes and
+workspace-scoped API permissions. It has no public token routes or password
+flows. The existing catalog renderer, six languages and release content are
+reused. Start the NestJS local stack first, then `npm start` on port 5318.
+Vite proxies `/api` to the loopback NestJS service, forwarding the Access header.
+Active routes do not initialize Supabase or use its authentication.
+
+The directory's Workspace link opens the same-origin, shared management screen
+at `/ladders/workspace-access`, rather than duplicating the lifecycle UI.
+It supports native workspace creation, create-or-wait onboarding, exact-account
+app invitations and acceptance, app-owner role changes/revocation, and confirmed
+empty-workspace deletion. Shiplog invites grant only the stated Shiplog role.
+Creation makes its creator owner in all five apps without creating a legacy auth
+account. Deletion protects content and audit history across apps and requires
+owner access in all five. The gateway must also serve the Ladders management route.
+
+Internal roles can open `/shiplog/workspaces/:workspace/applications`.
+The existing application form and cards are shared by the legacy and API
+adapters. Owner/editor grants can create, rename, change descriptions/team
+assignment and confirm deletion; viewers are read-only and external grants
+cannot read the internal directory. Team IDs must belong to the workspace.
+Applications with any release cannot be deleted, including drafts. Writes
+preserve IDs/creation times and record audit events against the verified
+platform account, without linking it to a legacy account. Failed deletion
+closes confirmation and shows the error unobscured.
+The existing release modal is also shared by the legacy and API adapters.
+Owner/editor grants create releases and save draft versions/titles, notes, status
+and staged Planner links together. Version types reuse the existing server-side
+SemVer comparison. Non-draft version/title/links are locked; notes/status remain
+editable, as before. Linking requires an additional internal Planner workspace
+grant; failed saves do not leave partial releases/links/audits. Viewers can inspect
+release details without saving; external users only see the reduced catalog.
+Updates preserve release IDs/timestamps and are audited against platform
+identities, without legacy account impersonation.
+Checklist templates and QA completion now reuse the existing editor/modal/views
+through the API. Only owners edit templates; stale saves show an error and offer
+reload. Changes affect only future release snapshots. Owners/editors complete or
+clear checks; viewers inspect read-only QA and external grants see no QA controls.
+Platform completion actors are stored separately from imported legacy records,
+which remain unchanged. Check completion never changes manual release status.
+Approvals now reuse the existing thumbs-up/down controls and QA placement.
+Internal users, including viewers, decide only for themselves; this does not grant
+release editing or change status/QA. Same-email verified subjects keep independent
+decisions. The directory excludes external/revoked grants without deleting stored
+history and projects display names without full emails. Imported legacy approvals
+remain separate and untouched until explicit identity mapping; member-name mapping
+is not inferred from email. Writes audit the verified platform actor.
+Internal roles can open `/shiplog/workspaces/:workspace/audit` from the directory,
+applications or releases. The read-only page merges platform and imported legacy
+history with explicit source/actor labels and expandable stored details. It loads
+50 events per page with stable cursor pagination, surfaces errors and denies
+external users. Legacy actor UUIDs are explicitly unmapped, not inferred from
+email or relabeled as Access identities. Audit navigation/copy supports all six
+languages. Primary Shiplog workflows and the shared workspace lifecycle are API-backed,
+but real corporate Access acceptance remains; this branch
+is not a production replacement.
+No deployment workflow has been changed.
+
+The local Compose stack also has a `shiplog` web profile on
+`http://127.0.0.1:5310/shiplog/`. Its Docker build uses a BuildKit secret for
+`GITHUB_TOKEN` to install the existing GitHub Packages; the token is not written
+to the image. Nginx serves browser-route fallbacks and proxies `/api` to NestJS
+on the internal Docker network.
+
 Release history and communication on the same Supabase project and shared
 `@jordiorriols/ui` package as Ladders, Planner and Pulse.
 
@@ -11,6 +78,7 @@ are displayed and the directory refreshes only on success. Deploy the backend
 lifecycle migration before enabling these controls.
 
 ## Current vertical slice
+
 Application and checklist modals use the shared UI modal's single content scroll
 region, keeping footer actions visible without nested vertical scrollbars.
 Field adapters reuse UI's `FormField`, `Input` and `Textarea` for applications,
