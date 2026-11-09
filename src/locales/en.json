@@ -9,6 +9,7 @@
     "more": "Load more events"
   },
   "access": {
+    "manageWorkspace": "Workspace access",
     "empty": "You do not have access to any Shiplog workspace. Ask an administrator to assign access."
   },
   "app": {

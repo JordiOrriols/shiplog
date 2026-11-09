@@ -9,6 +9,7 @@
     "more": "Weitere Ereignisse laden"
   },
   "access": {
+    "manageWorkspace": "Arbeitsbereichszugriff",
     "empty": "Sie haben keinen Zugriff auf einen Shiplog-Arbeitsbereich. Bitten Sie einen Administrator, Ihnen Zugriff zuzuweisen."
   },
   "app": {

@@ -9,6 +9,7 @@
     "more": "Carica altri eventi"
   },
   "access": {
+    "manageWorkspace": "Accesso allo spazio",
     "empty": "Non hai accesso ad alcuno spazio Shiplog. Chiedi a un amministratore di assegnarti l'accesso."
   },
   "app": {

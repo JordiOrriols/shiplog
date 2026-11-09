@@ -10,6 +10,15 @@ reused. Start the NestJS local stack first, then `npm start` on port 5318.
 Vite proxies `/api` to the loopback NestJS service, forwarding the Access header.
 Active routes do not initialize Supabase or use its authentication.
 
+The directory's Workspace link opens the same-origin, shared management screen
+at `/ladders/workspace-access`, rather than duplicating the lifecycle UI.
+It supports native workspace creation, create-or-wait onboarding, exact-account
+app invitations and acceptance, app-owner role changes/revocation, and confirmed
+empty-workspace deletion. Shiplog invites grant only the stated Shiplog role.
+Creation makes its creator owner in all five apps without creating a legacy auth
+account. Deletion protects content and audit history across apps and requires
+owner access in all five. The gateway must also serve the Ladders management route.
+
 Internal roles can open `/shiplog/workspaces/:workspace/applications`.
 The existing application form and cards are shared by the legacy and API
 adapters. Owner/editor grants can create, rename, change descriptions/team
@@ -47,8 +56,8 @@ history with explicit source/actor labels and expandable stored details. It load
 50 events per page with stable cursor pagination, surfaces errors and denies
 external users. Legacy actor UUIDs are explicitly unmapped, not inferred from
 email or relabeled as Access identities. Audit navigation/copy supports all six
-languages. Primary Shiplog workflows are API-backed, but shared workspace lifecycle,
-explicit identity/member mapping and real Access acceptance remain; this branch
+languages. Primary Shiplog workflows and the shared workspace lifecycle are API-backed,
+but real corporate Access acceptance remains; this branch
 is not a production replacement.
 No deployment workflow has been changed.
 

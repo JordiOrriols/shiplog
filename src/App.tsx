@@ -44,6 +44,7 @@ function WorkspaceDirectory() {
             onValueChange={(value) => void i18n.changeLanguage(value)}
           />
         </header>
+        <a href="/ladders/workspace-access">{t("access.manageWorkspace")}</a>
         {query.isPending ? (
           <AppSkeleton label={t("common.loading")} fullPage={false} />
         ) : query.error ? (
